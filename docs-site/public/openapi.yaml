@@ -1,0 +1,863 @@
+openapi: 3.1.0
+info:
+  title: OpenLine API
+  version: 0.1.0
+  summary: Your Android phone's SIM as a voice API.
+  description: |
+    Place, answer and control real phone calls on an Android phone's SIM, and stream their audio
+    to your code or AI agent. Self-hosted: the base URL is your own server, usually a Tailscale
+    Funnel or Cloudflare Tunnel address.
+
+    Authenticate with an API key from the console's Settings page (or `HTTP_GATEWAY_API_KEY` from
+    `server/.env`) as `Authorization: Bearer <key>` or `x-api-key: <key>`.
+
+    Errors use one shape: `{"error": {"code": "DEVICE_OFFLINE", "message": "device is offline"}}`.
+
+    Call audio uses WebSockets, which OpenAPI can't describe; see the Agent streams and Media
+    stream guides.
+  license:
+    name: MIT
+servers:
+  - url: https://{host}
+    description: Your gateway
+    variables:
+      host:
+        default: your-machine.your-tailnet.ts.net
+security:
+  - bearer: []
+  - apiKey: []
+tags:
+  - name: Calls
+    description: Place calls, read them, and control them while they're live.
+  - name: Streams
+    description: Connect a call to your agent's WebSocket. The gateway dials out to your agent.
+  - name: Phones
+    description: Phones paired with this gateway and their live health.
+  - name: Assistant
+    description: The built-in Gemini Live phone assistant.
+  - name: Webhooks
+    description: Delivery log of call events sent to your webhook.
+  - name: Settings
+    description: Server settings and API keys.
+  - name: Health
+    description: Liveness.
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      operationId: health
+      summary: Check the server is up
+      security: []
+      responses:
+        "200":
+          description: Server is running.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, const: true }
+                  service: { type: string, example: openline-server }
+
+  /v1/calls:
+    post:
+      tags: [Calls]
+      operationId: createCall
+      summary: Place a call
+      description: |
+        Queues a call on a phone. The response comes back as soon as the phone has the command; the
+        call's progress arrives as webhooks (`call.dialing`, `call.active`, `call.disconnected`, ...)
+        and in `GET /v1/calls/{callId}`.
+
+        Pass `stream` to connect the call to your agent's WebSocket when it's answered.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateCallRequest" }
+            examples:
+              agent:
+                summary: Call with an AI agent attached
+                value:
+                  deviceId: phone-7f3a91c2
+                  to: "+919876543210"
+                  stream: { url: "wss://agent.example.com/ws", format: twilio, parameters: { campaign: renewals } }
+                  webhookUrl: https://example.com/gateway/events
+              plain:
+                summary: Plain call
+                value: { deviceId: phone-7f3a91c2, to: "+919876543210" }
+      responses:
+        "202":
+          description: Call queued and sent to the phone.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [call, command, media]
+                properties:
+                  call: { $ref: "#/components/schemas/Call" }
+                  command: { $ref: "#/components/schemas/Command" }
+                  media: { $ref: "#/components/schemas/MediaInfo" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/DeviceOffline" }
+    get:
+      tags: [Calls]
+      operationId: listCalls
+      summary: List calls
+      description: Newest first. To page, pass the previous response's `nextBefore` as `before`.
+      parameters:
+        - { name: deviceId, in: query, schema: { type: string } }
+        - { name: state, in: query, schema: { $ref: "#/components/schemas/CallState" } }
+        - { name: direction, in: query, schema: { $ref: "#/components/schemas/CallDirection" } }
+        - name: before
+          in: query
+          description: Only calls created before this time (ISO 8601).
+          schema: { type: string, format: date-time }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+      responses:
+        "200":
+          description: A page of calls.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [calls, nextBefore]
+                properties:
+                  calls: { type: array, items: { $ref: "#/components/schemas/Call" } }
+                  nextBefore:
+                    type: [string, "null"]
+                    format: date-time
+                    description: Pass as `before` for the next page; `null` on the last page.
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/calls/{callId}:
+    parameters:
+      - $ref: "#/components/parameters/callId"
+    get:
+      tags: [Calls]
+      operationId: getCall
+      summary: Get a call
+      responses:
+        "200":
+          description: The call and where to join its audio.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [call, media]
+                properties:
+                  call: { $ref: "#/components/schemas/Call" }
+                  media: { $ref: "#/components/schemas/MediaInfo" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/calls/{callId}/{action}:
+    parameters:
+      - $ref: "#/components/parameters/callId"
+      - name: action
+        in: path
+        required: true
+        schema: { type: string, enum: [answer, reject, hangup, hold, unhold] }
+    post:
+      tags: [Calls]
+      operationId: controlCall
+      summary: Answer, reject, hang up, hold or resume
+      description: |
+        Sends the action to the phone. `202` means the phone received it; the resulting state
+        change arrives as a webhook. `answer` and `reject` apply to ringing incoming calls.
+      responses:
+        "202": { $ref: "#/components/responses/CommandAccepted" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/DeviceOffline" }
+
+  /v1/calls/{callId}/dtmf:
+    parameters:
+      - $ref: "#/components/parameters/callId"
+    post:
+      tags: [Calls]
+      operationId: sendDtmf
+      summary: Press keypad keys
+      description: Plays DTMF tones on an active call, for example to get through a phone menu.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [digits]
+              properties:
+                digits: { type: string, pattern: "^[0-9*#]+$", maxLength: 64, example: "1#" }
+      responses:
+        "202": { $ref: "#/components/responses/CommandAccepted" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/DeviceOffline" }
+
+  /v1/calls/{callId}/events:
+    parameters:
+      - $ref: "#/components/parameters/callId"
+    get:
+      tags: [Calls]
+      operationId: listCallEvents
+      summary: Call event timeline
+      description: Every event the phone reported for this call, oldest first.
+      responses:
+        "200":
+          description: Events.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        event: { $ref: "#/components/schemas/CallEventName" }
+                        eventId: { type: string }
+                        payload: { type: object, additionalProperties: true }
+                        occurredAt: { type: string, format: date-time, description: Phone clock. }
+                        receivedAt: { type: string, format: date-time, description: Server clock. }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/calls/{callId}/transcript:
+    parameters:
+      - $ref: "#/components/parameters/callId"
+    get:
+      tags: [Calls]
+      operationId: getTranscript
+      summary: Call transcript
+      description: What the caller and the built-in assistant said. Empty for calls the assistant wasn't on.
+      responses:
+        "200":
+          description: Transcript lines.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transcript: { type: array, items: { $ref: "#/components/schemas/TranscriptLine" } }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/calls/{callId}/stream:
+    parameters:
+      - $ref: "#/components/parameters/callId"
+    post:
+      tags: [Streams]
+      operationId: attachStream
+      summary: Connect a live call to your agent
+      description: |
+        The gateway opens a WebSocket to `url` and streams the call both ways. A ringing incoming
+        call is answered first. Replaces any stream already attached. Closing the socket from
+        your side hangs up the call.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Stream" }
+      responses:
+        "202":
+          description: Stream attached.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/StreamInfo"
+                  - type: object
+                    properties:
+                      call: { $ref: "#/components/schemas/Call" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "409":
+          description: The call has already ended.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    get:
+      tags: [Streams]
+      operationId: getStream
+      summary: Stream status
+      responses:
+        "200":
+          description: Stream status.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StreamInfo" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Streams]
+      operationId: detachStream
+      summary: Disconnect your agent
+      description: Closes the agent socket without hanging up the call.
+      responses:
+        "204": { description: Detached. }
+
+  /v1/calls/{callId}/agent:
+    parameters:
+      - $ref: "#/components/parameters/callId"
+    get:
+      tags: [Assistant]
+      operationId: getCallAssistant
+      summary: Assistant status on a call
+      responses:
+        "200":
+          description: Status, transcript and the message it took, if any.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssistantCallInfo" }
+    post:
+      tags: [Assistant]
+      operationId: handToAssistant
+      summary: Hand a call to the assistant
+      description: Answers a ringing incoming call first. Needs a Gemini API key in Settings.
+      responses:
+        "202":
+          description: The assistant is joining.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssistantCallInfo" }
+        "409":
+          description: No Gemini key, or the call isn't live.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    delete:
+      tags: [Assistant]
+      operationId: takeOverFromAssistant
+      summary: Take the call back from the assistant
+      responses:
+        "204": { description: Assistant left the call. }
+
+  /v1/agent:
+    get:
+      tags: [Assistant]
+      operationId: getAssistant
+      summary: Assistant settings
+      responses:
+        "200":
+          description: Whether it's available and how it behaves.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  configured: { type: boolean, description: A Gemini API key is set. }
+                  model: { type: string, example: gemini-3.8-live }
+                  settings: { $ref: "#/components/schemas/AssistantSettings" }
+    put:
+      tags: [Assistant]
+      operationId: updateAssistant
+      summary: Change assistant settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AssistantSettings" }
+      responses:
+        "200":
+          description: Saved settings.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  settings: { $ref: "#/components/schemas/AssistantSettings" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+
+  /v1/agent/messages:
+    get:
+      tags: [Assistant]
+      operationId: listMessages
+      summary: Messages the assistant took
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, default: 100 } }
+      responses:
+        "200":
+          description: Newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages: { type: array, items: { $ref: "#/components/schemas/AssistantMessage" } }
+
+  /v1/devices:
+    get:
+      tags: [Phones]
+      operationId: listDevices
+      summary: List phones
+      responses:
+        "200":
+          description: Paired phones with connection state and health.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  devices: { type: array, items: { $ref: "#/components/schemas/Device" } }
+
+  /v1/devices/{deviceId}:
+    parameters:
+      - { name: deviceId, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Phones]
+      operationId: getDevice
+      summary: Get a phone
+      responses:
+        "200":
+          description: The phone.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  device: { $ref: "#/components/schemas/Device" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Phones]
+      operationId: removeDevice
+      summary: Remove a phone
+      description: Disconnects it and deletes its credentials. It has to be paired again to come back.
+      responses:
+        "204": { description: Removed. }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/pairing:
+    post:
+      tags: [Phones]
+      operationId: createPairingCode
+      summary: Create a pairing code
+      description: A one-time code (valid 10 minutes) and its QR code, which the OpenLine app scans.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                publicUrl:
+                  type: string
+                  format: uri
+                  description: Address the phone should use. Defaults to the saved public address.
+      responses:
+        "201":
+          description: Pairing code.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code: { type: string, example: K7QM4TZP }
+                  expiresAt: { type: string, format: date-time }
+                  publicUrl: { type: string, format: uri }
+                  pairUri: { type: string, example: "httpgateway://pair?url=https%3A%2F%2Fgw.example.com&code=K7QM4TZP" }
+                  qrSvg: { type: string, description: QR code of `pairUri` as SVG markup. }
+
+  /v1/webhook-deliveries:
+    get:
+      tags: [Webhooks]
+      operationId: listWebhookDeliveries
+      summary: Webhook delivery log
+      description: |
+        Every attempt to deliver a call event, newest first. Failed deliveries are retried after
+        5 seconds, 30 seconds and 2 minutes.
+      parameters:
+        - { name: callId, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+      responses:
+        "200":
+          description: Attempts.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deliveries:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        callId: { type: string }
+                        eventId: { type: string }
+                        event: { $ref: "#/components/schemas/CallEventName" }
+                        url: { type: string, format: uri }
+                        attempt: { type: integer, minimum: 1, maximum: 4 }
+                        ok: { type: boolean }
+                        error: { type: string, example: Webhook returned HTTP 500 }
+                        at: { type: string, format: date-time }
+
+  /v1/settings:
+    get:
+      tags: [Settings]
+      operationId: getSettings
+      summary: Get settings
+      description: Secrets come back only as whether they're set and their last 4 characters.
+      responses:
+        "200":
+          description: Settings.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  settings: { $ref: "#/components/schemas/Settings" }
+    put:
+      tags: [Settings]
+      operationId: updateSettings
+      summary: Change settings
+      description: Send only the fields to change. An empty string clears a value (back to the `.env` default).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                geminiApiKey: { type: string }
+                geminiModel: { type: string }
+                publicUrl: { type: string, format: uri }
+                webhookUrl: { type: string, format: uri, description: Receives every call event. }
+                docsUrl: { type: string, format: uri }
+                incomingStreamUrl:
+                  type: string
+                  description: "`ws://` or `wss://`. Every incoming call is answered and streamed here."
+                incomingStreamFormat: { $ref: "#/components/schemas/StreamFormat" }
+      responses:
+        "200":
+          description: Saved settings.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  settings: { $ref: "#/components/schemas/Settings" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+
+  /v1/api-keys:
+    get:
+      tags: [Settings]
+      operationId: listApiKeys
+      summary: List API keys
+      responses:
+        "200":
+          description: Active keys (never the key itself).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  apiKeys: { type: array, items: { $ref: "#/components/schemas/ApiKey" } }
+    post:
+      tags: [Settings]
+      operationId: createApiKey
+      summary: Create an API key
+      description: The key is returned once. Store it; only its hash is kept.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 80, example: sales agent }
+      responses:
+        "201":
+          description: The new key.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  apiKey:
+                    allOf:
+                      - $ref: "#/components/schemas/ApiKey"
+                      - type: object
+                        properties:
+                          key: { type: string, example: gw_9fJ2kQx0b7Lw4mT1sV8yZ3cA6dE5hN2p }
+
+  /v1/api-keys/{id}:
+    delete:
+      tags: [Settings]
+      operationId: revokeApiKey
+      summary: Revoke an API key
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "204": { description: Revoked; requests with it fail at once. }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      description: An API key as a bearer token.
+    apiKey:
+      type: apiKey
+      in: header
+      name: x-api-key
+
+  parameters:
+    callId:
+      name: callId
+      in: path
+      required: true
+      schema: { type: string }
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid API key.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: { code: UNAUTHORIZED, message: invalid API key or session } }
+    NotFound:
+      description: Not found.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: { code: NOT_FOUND, message: call not found } }
+    DeviceOffline:
+      description: The phone isn't connected to the gateway.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: { code: DEVICE_OFFLINE, message: device is offline } }
+    ValidationError:
+      description: The request didn't validate.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: { code: VALIDATION_ERROR, message: invalid request, issues: [] } }
+    CommandAccepted:
+      description: The phone received the command.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              accepted: { type: boolean, const: true }
+              command: { $ref: "#/components/schemas/Command" }
+              call: { $ref: "#/components/schemas/Call" }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, example: DEVICE_OFFLINE }
+            message: { type: string }
+            issues: { type: array, items: {}, description: Validation details, for VALIDATION_ERROR. }
+
+    CallState:
+      type: string
+      enum: [queued, dialing, ringing, active, held, ended, rejected, failed]
+
+    CallDirection:
+      type: string
+      enum: [outgoing, incoming]
+
+    CallEventName:
+      type: string
+      enum:
+        - call.new
+        - call.connecting
+        - call.select_phone_account
+        - call.dialing
+        - call.ringing
+        - call.simulated_ringing
+        - call.active
+        - call.audio_processing
+        - call.holding
+        - call.pulling
+        - call.disconnecting
+        - call.disconnected
+        - call.rejected
+        - call.failed
+
+    CreateCallRequest:
+      type: object
+      required: [deviceId, to]
+      properties:
+        deviceId: { type: string, description: Which phone places the call. }
+        to: { type: string, maxLength: 64, example: "+919876543210" }
+        webhookUrl:
+          type: string
+          format: uri
+          description: Gets this call's events instead of the default webhook.
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Your own data, stored with the call and returned on reads and webhooks.
+        stream: { $ref: "#/components/schemas/Stream" }
+
+    Call:
+      type: object
+      required: [id, deviceId, remoteNumber, direction, state, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        deviceId: { type: string }
+        remoteNumber: { type: string, example: "+919876543210" }
+        direction: { $ref: "#/components/schemas/CallDirection" }
+        state: { $ref: "#/components/schemas/CallState" }
+        nativeCallId: { type: string }
+        webhookUrl: { type: string, format: uri }
+        metadata: { type: object, additionalProperties: true }
+        stream: { $ref: "#/components/schemas/Stream" }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        answeredAt: { type: string, format: date-time }
+        endedAt: { type: string, format: date-time }
+
+    Command:
+      type: object
+      properties:
+        type: { type: string, const: command }
+        commandId: { type: string, format: uuid }
+        callId: { type: string }
+        action: { type: string, enum: [dial, answer, reject, hangup, hold, unhold, dtmf] }
+        payload: { type: object, additionalProperties: true }
+
+    MediaInfo:
+      type: object
+      description: Where to join this call's audio yourself (WebSocket).
+      properties:
+        path: { type: string, example: /v1/calls/9b2e/media }
+        format:
+          type: object
+          properties:
+            encoding: { type: string, const: pcm_s16le }
+            sampleRate: { type: integer, const: 16000 }
+            channels: { type: integer, const: 1 }
+            frameMs: { type: integer, const: 20 }
+        streaming: { type: boolean, description: The phone is sending audio right now. }
+
+    StreamFormat:
+      type: string
+      enum: [raw, twilio]
+      default: raw
+      description: |
+        `raw`: 16 kHz s16le binary frames. `twilio`: Twilio Media Streams JSON with 8 kHz mu-law,
+        compatible with Twilio integrations such as Pipecat's.
+
+    Stream:
+      type: object
+      required: [url]
+      description: Your agent's WebSocket. The gateway connects to it when the call is answered.
+      properties:
+        url: { type: string, example: "wss://agent.example.com/ws", description: "`ws://` or `wss://`." }
+        format: { $ref: "#/components/schemas/StreamFormat" }
+        parameters:
+          type: object
+          additionalProperties: { type: string }
+          description: Sent to your agent in the start message (Twilio `customParameters`).
+
+    StreamInfo:
+      type: object
+      properties:
+        stream:
+          oneOf:
+            - $ref: "#/components/schemas/Stream"
+            - type: "null"
+        status: { type: string, enum: [off, waiting, connecting, live, ended, error] }
+        error: { type: string }
+
+    Device:
+      type: object
+      properties:
+        id: { type: string, example: phone-7f3a91c2 }
+        name: { type: string, example: Vivo V2348 }
+        connected: { type: boolean }
+        registeredAt: { type: string, format: date-time }
+        lastSeenAt: { type: string, format: date-time }
+        latencyMs: { type: integer, description: Round trip to the phone, measured every 20 s. }
+        health: { $ref: "#/components/schemas/DeviceHealth" }
+
+    DeviceHealth:
+      type: object
+      description: Latest report from the phone (on connect, every 60 s and on network changes).
+      properties:
+        battery: { type: integer, minimum: 0, maximum: 100 }
+        charging: { type: boolean }
+        network: { type: string, enum: [wifi, cellular, ethernet, other, none] }
+        signal: { type: integer, minimum: 0, maximum: 4 }
+        carrier: { type: string, example: Jio }
+        audio:
+          type: string
+          enum: [running, stopped, pairing_required]
+          description: State of the phone's call-audio helper.
+        appVersion: { type: string }
+        android: { type: string }
+        model: { type: string }
+        reportedAt: { type: string, format: date-time }
+
+    TranscriptLine:
+      type: object
+      properties:
+        role: { type: string, enum: [caller, agent] }
+        text: { type: string }
+        at: { type: string, format: date-time }
+
+    AssistantSettings:
+      type: object
+      properties:
+        autoAnswer: { type: boolean, description: Answer incoming calls with the assistant. }
+        ownerName: { type: string, maxLength: 80, description: Who it answers for. }
+        about: { type: string, maxLength: 4000, description: Facts it may share with callers. }
+        voice: { type: string, example: Kore }
+
+    AssistantMessage:
+      type: object
+      properties:
+        callId: { type: string }
+        remoteNumber: { type: string }
+        callerName: { type: string }
+        reason: { type: string }
+        callbackNumber: { type: string }
+        urgency: { type: string, enum: [low, normal, high] }
+        takenAt: { type: string, format: date-time }
+
+    AssistantCallInfo:
+      type: object
+      properties:
+        requested: { type: boolean }
+        status: { type: string, enum: [off, waiting, connecting, live, ended, error] }
+        error: { type: string }
+        transcript: { type: array, items: { $ref: "#/components/schemas/TranscriptLine" } }
+        message: { $ref: "#/components/schemas/AssistantMessage" }
+
+    Settings:
+      type: object
+      properties:
+        publicUrl: { type: [string, "null"] }
+        webhookUrl: { type: [string, "null"] }
+        docsUrl: { type: [string, "null"] }
+        incomingStreamUrl: { type: [string, "null"] }
+        incomingStreamFormat: { $ref: "#/components/schemas/StreamFormat" }
+        geminiModel: { type: [string, "null"] }
+        geminiApiKey:
+          type: object
+          properties:
+            configured: { type: boolean }
+            hint: { type: [string, "null"], example: "…PEXg" }
+            source: { type: [string, "null"], enum: [console, env, null] }
+
+    ApiKey:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        prefix: { type: string, example: gw_9fJ2 }
+        createdAt: { type: string, format: date-time }
+        lastUsedAt: { type: string, format: date-time }

@@ -1,0 +1,1501 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenLine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f4f5f6; --surface: #ffffff; --ink: #1b1d20; --muted: #6a6f75; --line: #dcdfe3;
+    --soft: #eceef0; --live: #2f7a4d; --ring: #9a6a12; --bad: #b3261e;
+    --radius: 6px;
+    --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #141619; --surface: #1c1f23; --ink: #e7e9ec; --muted: #969ca3; --line: #2d3136;
+      --soft: #24282d; --live: #6cc28f; --ring: #d6a54b; --bad: #f08a80;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font: 15px/1.5 "Public Sans", system-ui, sans-serif; font-variant-numeric: tabular-nums;
+  }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  [hidden] { display: none !important; }
+  a { color: inherit; }
+  code, pre { font-family: var(--mono); font-size: 13px; }
+
+  /* Header */
+  .top { border-bottom: 1px solid var(--line); background: var(--surface); position: sticky; top: 0; z-index: 5; }
+  .top-inner { max-width: 1120px; margin: 0 auto; display: flex; align-items: center; gap: 20px; padding: 0 24px; min-height: 56px; flex-wrap: wrap; }
+  .brand { font-weight: 700; font-size: 17px; letter-spacing: -0.01em; text-decoration: none; }
+  .nav { display: flex; gap: 2px; margin-right: auto; flex-wrap: wrap; }
+  .nav a { text-decoration: none; color: var(--muted); padding: 17px 10px 15px; border-bottom: 2px solid transparent; font-size: 14px; font-weight: 500; }
+  .nav a:hover { color: var(--ink); }
+  .nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--ink); }
+  .phone-status { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); flex: none; display: inline-block; }
+  .dot.live { background: var(--live); } .dot.ring { background: var(--ring); } .dot.bad { background: var(--bad); }
+  @media (max-width: 700px) {
+    .top-inner { padding: 8px 16px; gap: 8px 16px; }
+    .nav { order: 3; width: 100%; margin: 0 -10px; overflow-x: auto; flex-wrap: nowrap; }
+    .nav a { padding: 8px 10px 10px; }
+    .brand { margin-right: auto; }
+  }
+
+  .page { max-width: 1120px; margin: 0 auto; padding: 28px 24px 48px; }
+  @media (max-width: 700px) { .page { padding: 18px 16px 40px; } }
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
+  .grid.even { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  @media (max-width: 900px) { .grid, .grid.even { grid-template-columns: minmax(0, 1fr); } }
+
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .panel + .panel { margin-top: 24px; }
+  .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 14px 18px 0; }
+  .panel-head h2 { font-size: 15px; font-weight: 600; margin: 0; }
+  .panel-body { padding: 12px 18px 18px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  h1.title { font-size: 24px; font-weight: 600; letter-spacing: -0.015em; margin: 0 0 4px; }
+  .lede { color: var(--muted); margin: 0 0 24px; max-width: 640px; }
+
+  /* Buttons and fields */
+  .btn { border: 1px solid var(--line); background: var(--surface); padding: 8px 14px; border-radius: var(--radius); cursor: pointer; line-height: 1.2; white-space: nowrap; text-decoration: none; display: inline-block; }
+  .btn:hover:not(:disabled) { border-color: var(--ink); }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .btn.solid { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+  .btn.end { background: var(--bad); color: #fff; border-color: var(--bad); }
+  .btn.link { border: 0; padding: 4px 0; background: none; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+  .btn.link:hover { color: var(--ink); }
+  .field { width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); padding: 8px 10px; }
+  .field:focus { border-color: var(--ink); outline: none; }
+  textarea.field { resize: vertical; min-height: 120px; line-height: 1.45; }
+  label.lbl { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .hint { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+  .warn { color: var(--bad); font-size: 13px; margin-top: 6px; }
+
+  /* Sign-in */
+  .auth { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+  .auth .panel { width: min(400px, 100%); padding: 28px; }
+  .auth h1 { font-size: 20px; margin: 0 0 4px; font-weight: 600; }
+
+  /* Home */
+  .hero { padding: 24px 0 8px; max-width: 720px; }
+  .hero h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.1; letter-spacing: -0.025em; margin: 0 0 14px; font-weight: 700; }
+  .hero p { font-size: 17px; color: var(--muted); margin: 0; }
+  .flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 32px 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+  .flow > div { padding: 18px; }
+  .flow > div + div { border-left: 1px solid var(--line); }
+  .flow .n { font-size: 13px; color: var(--muted); }
+  .flow h3 { margin: 2px 0 6px; font-size: 16px; font-weight: 600; }
+  .flow p { margin: 0; color: var(--muted); font-size: 14px; }
+  @media (max-width: 700px) { .flow { grid-template-columns: 1fr; } .flow > div + div { border-left: 0; border-top: 1px solid var(--line); } }
+  .checklist { list-style: none; margin: 0; padding: 0; }
+  .checklist li { display: flex; gap: 12px; align-items: flex-start; padding: 12px 18px; }
+  .checklist li + li { border-top: 1px solid var(--line); }
+  .checklist .mark { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--line); flex: none; display: grid; place-items: center; font-size: 12px; margin-top: 1px; }
+  .checklist .done .mark { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+  .checklist .grow { flex: 1; }
+  .checklist b { font-weight: 600; }
+  .code-block { position: relative; background: var(--soft); border-radius: var(--radius); padding: 14px 16px; overflow-x: auto; margin: 0; line-height: 1.55; white-space: pre; }
+  .code-block + .code-block { margin-top: 12px; }
+  .copy { position: absolute; top: 8px; right: 8px; font-size: 12px; padding: 4px 8px; }
+  .endpoints { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .endpoints td { padding: 8px 18px; border-top: 1px solid var(--line); vertical-align: top; }
+  .endpoints td:first-child { white-space: nowrap; font-family: var(--mono); font-size: 13px; width: 1%; }
+  .endpoints .verb { display: inline-block; min-width: 54px; color: var(--muted); }
+  @media (max-width: 640px) { .endpoints td { display: block; border-top: 0; padding: 2px 18px; } .endpoints tr { display: block; border-top: 1px solid var(--line); padding: 8px 0; } }
+
+  /* The line (playground) */
+  .line-panel { padding: 22px 24px 20px; }
+  .line-state { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; min-height: 21px; }
+  .line-number { font-size: clamp(34px, 6vw, 54px); font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; margin: 6px 0 2px; overflow-wrap: anywhere; }
+  .line-sub { color: var(--muted); font-size: 14px; display: flex; gap: 14px; flex-wrap: wrap; }
+  .timer { font-weight: 500; color: var(--ink); }
+  .dial { display: flex; gap: 12px; margin-top: 10px; align-items: flex-end; }
+  .dial .btn { margin-bottom: 6px; padding: 10px 22px; }
+  .dial input { flex: 1; width: 0; min-width: 0; border: 0; border-bottom: 2px solid var(--line); background: none; padding: 4px 0; font-size: clamp(30px, 5vw, 46px); font-weight: 600; letter-spacing: -0.02em; }
+  .dial input:focus { outline: none; border-color: var(--ink); }
+  .dial input::placeholder { color: var(--muted); opacity: .45; }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+  .controls .spacer { flex: 1; }
+  .keypad { display: grid; grid-template-columns: repeat(3, 52px); gap: 6px; margin-top: 12px; }
+  .keypad .btn { padding: 10px 0; font-weight: 600; }
+  details.api { margin-top: 14px; }
+  details.api summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+  details.api .code-block { margin-top: 8px; }
+
+  .sub-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-top: 1px solid var(--line); margin-top: 20px; }
+  .sub-row > div { padding: 14px 0 0; }
+  .sub-row > div + div { border-left: 1px solid var(--line); padding-left: 18px; }
+  .sub-row > div:first-child { padding-right: 18px; }
+  @media (max-width: 640px) { .sub-row { grid-template-columns: 1fr; } .sub-row > div + div { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); margin-top: 14px; } }
+  .sub-title { font-size: 14px; font-weight: 600; margin: 0 0 6px; display: flex; align-items: center; gap: 8px; }
+  .meters { display: grid; grid-template-columns: 76px 1fr; gap: 6px 10px; align-items: center; font-size: 13px; color: var(--muted); margin: 10px 0; }
+  .meter { height: 4px; background: var(--soft); border-radius: 2px; overflow: hidden; }
+  .meter > div { height: 100%; width: 0; background: var(--ink); transition: width 80ms linear; }
+
+  .transcript { max-height: 300px; overflow: auto; margin-top: 10px; display: flex; flex-direction: column; gap: 10px; }
+  .turn { font-size: 14px; }
+  .turn .who { font-weight: 600; margin-right: 6px; }
+  .turn.agent .who { color: var(--muted); }
+
+  /* Lists */
+  .list { list-style: none; margin: 0; padding: 0; }
+  .list li + li { border-top: 1px solid var(--line); }
+  .call-row { width: 100%; display: grid; grid-template-columns: 18px 1fr auto; gap: 4px 10px; align-items: center; padding: 10px 18px; text-align: left; border: 0; background: none; cursor: pointer; }
+  .call-row:hover, .call-row[aria-current="true"] { background: var(--soft); }
+  .call-row .dir { color: var(--muted); }
+  .call-row .num { font-weight: 500; }
+  .call-row .when { color: var(--muted); font-size: 13px; }
+  .call-row .st { grid-column: 2 / -1; font-size: 13px; color: var(--muted); }
+  .empty { padding: 18px; color: var(--muted); font-size: 14px; }
+
+  .msg { padding: 14px 18px; }
+  .msg .name { font-weight: 600; }
+  .msg .reason { margin: 2px 0 4px; }
+  .msg .meta { font-size: 13px; color: var(--muted); }
+  .msg .urgent { color: var(--bad); font-weight: 600; }
+
+  .switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; }
+  .switch input { appearance: none; width: 36px; height: 20px; border-radius: 10px; background: var(--line); position: relative; cursor: pointer; flex: none; transition: background .15s; }
+  .switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); transition: transform .15s; }
+  .switch input:checked { background: var(--ink); }
+  .switch input:checked::after { transform: translateX(16px); }
+
+  /* Connection */
+  .pair { display: grid; grid-template-columns: 300px 1fr; }
+  @media (max-width: 700px) { .pair { grid-template-columns: 1fr; } }
+  .qr { padding: 24px; border-right: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  @media (max-width: 700px) { .qr { border-right: 0; border-bottom: 1px solid var(--line); } }
+  .qr-box { width: 252px; height: 252px; max-width: 100%; background: #fff; padding: 10px; border-radius: 4px; display: grid; place-items: center; color: #6a6f75; font-size: 13px; text-align: center; }
+  .qr-box svg { width: 100%; height: 100%; display: block; }
+  .code { font-size: 22px; font-weight: 600; letter-spacing: 0.12em; }
+  .steps { padding: 24px; }
+  .steps ol { margin: 0; padding-left: 20px; }
+  .steps li { margin-bottom: 10px; }
+
+  .device { padding: 16px 18px; }
+  .device + .device { border-top: 1px solid var(--line); }
+  .device-head { display: flex; align-items: center; gap: 10px; }
+  .device-head .grow { flex: 1; min-width: 0; }
+  .device-name { font-weight: 600; }
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 18px; margin-top: 14px; }
+  @media (max-width: 640px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .stat .k { font-size: 12px; color: var(--muted); }
+  .stat .v { font-weight: 500; }
+  .stat .v.bad { color: var(--bad); }
+  .bars { display: inline-flex; gap: 2px; align-items: flex-end; height: 12px; margin-right: 6px; vertical-align: -1px; }
+  .bars i { width: 3px; background: var(--line); border-radius: 1px; }
+  .bars i.on { background: var(--ink); }
+  .kv { display: grid; grid-template-columns: 140px 1fr; gap: 8px 14px; font-size: 14px; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; overflow-wrap: anywhere; }
+
+  /* Settings */
+  .settings-nav { position: sticky; top: 80px; }
+  .key-row { display: flex; align-items: center; gap: 12px; padding: 12px 18px; font-size: 14px; }
+  .key-row + .key-row { border-top: 1px solid var(--line); }
+  .key-row .grow { flex: 1; min-width: 0; }
+  .new-key { background: var(--soft); border-radius: var(--radius); padding: 12px 14px; margin-top: 12px; }
+  .new-key code { overflow-wrap: anywhere; font-size: 14px; }
+
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ink); color: var(--surface); padding: 10px 16px; border-radius: var(--radius); font-size: 14px; max-width: calc(100vw - 32px); z-index: 10; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<!-- Sign-in ---------------------------------------------------------------------------------->
+<div class="auth" id="authView" hidden>
+  <form class="panel" id="authForm">
+    <h1 id="authTitle">Sign in</h1>
+    <p class="muted small" id="authLede" style="margin:0 0 8px">OpenLine console</p>
+    <label class="lbl" for="email">Email</label>
+    <input class="field" id="email" type="email" autocomplete="username" required>
+    <label class="lbl" for="password" id="passwordLabel">Password</label>
+    <input class="field" id="password" type="password" autocomplete="current-password" required>
+    <div id="confirmFields" hidden>
+      <label class="lbl" for="password2">Repeat password</label>
+      <input class="field" id="password2" type="password" autocomplete="new-password">
+      <p class="hint">At least 8 characters.</p>
+    </div>
+    <div id="setupFields" hidden>
+      <label class="lbl" for="setupKey">Setup key</label>
+      <input class="field" id="setupKey" type="password" autocomplete="off">
+      <p class="hint">You're opening this through the public address, so prove it's your server: paste
+        <code>HTTP_GATEWAY_API_KEY</code> from <code>server\.env</code>. Not needed on the server's own PC.</p>
+    </div>
+    <p class="warn" id="authError" hidden></p>
+    <button class="btn solid" type="submit" style="width:100%; margin-top:18px; padding:10px">Continue</button>
+  </form>
+</div>
+
+<div id="appView" hidden>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="#/">OpenLine</a>
+  <nav class="nav" aria-label="Main">
+    <a href="#/" data-route="home">Home</a>
+    <a href="#/playground" data-route="playground">Playground</a>
+    <a href="#/connection" data-route="connection">Connection</a>
+    <a href="#/docs" data-route="docs" id="docsLink">Docs</a>
+    <a href="#/settings" data-route="settings">Settings</a>
+  </nav>
+  <a class="phone-status" id="phoneStatus" href="#/connection" style="text-decoration:none"><span class="dot"></span><span>Checking phone…</span></a>
+</div></header>
+
+<!-- Home ------------------------------------------------------------------------------------->
+<main class="page" data-page="home" hidden>
+  <section class="hero">
+    <h1>Your phone's SIM, as a voice API.</h1>
+    <p>A self-hosted alternative to Twilio Voice. An Android phone places and answers real calls on its SIM, and your apps and AI agents control them over HTTP and stream the audio over WebSockets.</p>
+  </section>
+
+  <div class="flow">
+    <div><div class="n">1</div><h3>Phone</h3><p>Runs the OpenLine app. Dials, answers and routes call audio. It stays silent: the conversation happens on the server.</p></div>
+    <div><div class="n">2</div><h3>Server</h3><p>This machine. Exposes the REST API, relays audio, sends webhooks and keeps every call in a local SQLite database.</p></div>
+    <div><div class="n">3</div><h3>Your agent</h3><p>Any app or voice AI. Start calls with a POST, get status by webhook, and talk through 16 kHz PCM on a WebSocket.</p></div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <section class="panel">
+        <div class="panel-head"><h2>Make a call from code</h2></div>
+        <div class="panel-body">
+          <p class="muted small" style="margin:0 0 10px">Create an API key in Settings, then place a call that talks to your agent:</p>
+          <pre class="code-block" id="curlCall"></pre>
+          <pre class="code-block" id="wsSnippet"></pre>
+          <p class="hint">Send <code>clear</code> to cut off queued speech when the caller interrupts. Incoming calls can go to your agent too: set the URL in Settings.</p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>API</h2><a class="btn link" href="#/docs">Full docs</a></div>
+        <table class="endpoints" style="margin-top:8px">
+          <tbody id="endpointRows"></tbody>
+        </table>
+      </section>
+    </div>
+
+    <aside>
+      <section class="panel">
+        <div class="panel-head"><h2>Getting started</h2></div>
+        <ul class="checklist" id="checklist" style="margin-top:6px"></ul>
+      </section>
+    </aside>
+  </div>
+</main>
+
+<!-- Playground ------------------------------------------------------------------------------->
+<main class="page" data-page="playground" hidden>
+  <h1 class="title">Playground</h1>
+  <p class="lede">Try the API by hand: place a call, talk from this laptop, listen in, or hand the call to the built-in AI assistant.</p>
+  <div class="grid">
+    <div>
+      <section class="panel line-panel" aria-live="polite">
+        <div class="line-state"><span class="dot" id="lineDot"></span><span id="lineState">No call</span></div>
+
+        <div id="idle">
+          <form class="dial" id="dialForm">
+            <input id="number" inputmode="tel" autocomplete="off" placeholder="Number to call" aria-label="Number to call">
+            <button class="btn solid" type="submit">Call</button>
+          </form>
+          <p class="muted small" id="idleHint" style="margin:10px 0 0">Incoming calls appear here.</p>
+          <details class="api"><summary>Same thing over the API</summary><pre class="code-block" id="dialCurl"></pre></details>
+        </div>
+
+        <div id="active" hidden>
+          <div class="line-number" id="lineNumber"></div>
+          <div class="line-sub"><span class="timer" id="timer"></span><span id="lineMeta"></span></div>
+          <div class="controls">
+            <button class="btn solid" data-action="answer">Answer</button>
+            <button class="btn" data-action="reject">Decline</button>
+            <button class="btn" data-action="hold">Hold</button>
+            <button class="btn" data-action="unhold">Resume</button>
+            <button class="btn" id="keypadToggle" aria-expanded="false">Keypad</button>
+            <span class="spacer"></span>
+            <button class="btn end" data-action="hangup">End call</button>
+          </div>
+          <div class="keypad" id="keypad" hidden></div>
+
+          <div class="sub-row">
+            <div>
+              <p class="sub-title"><span class="dot" id="aiDot"></span>Assistant</p>
+              <p class="muted small" id="aiState" style="margin:0">Not on this call.</p>
+              <div class="row" style="margin-top:10px"><button class="btn" id="aiToggle">Hand to assistant</button></div>
+            </div>
+            <div>
+              <p class="sub-title"><span class="dot" id="audioDot"></span>Laptop audio</p>
+              <p class="muted small" id="audioState" style="margin:0">Off. Use headphones to avoid echo.</p>
+              <div class="meters">
+                <span>Caller</span><div class="meter"><div id="outMeter"></div></div>
+                <span id="inLabel">You</span><div class="meter"><div id="inMeter"></div></div>
+              </div>
+              <div class="row">
+                <button class="btn" id="listenToggle">Listen in</button>
+                <button class="btn" id="audioToggle">Talk from laptop</button>
+                <button class="btn" id="micToggle" disabled>Mute</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="transcript" id="transcript"></div>
+          <div id="callMessage"></div>
+          <details class="api"><summary>Call events</summary><pre class="code-block" id="callEvents"></pre></details>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>Recent calls</h2></div>
+        <ul class="list" id="calls" style="margin-top:8px"></ul>
+      </section>
+    </div>
+
+    <aside>
+      <section class="panel">
+        <div class="panel-head"><h2>Assistant</h2></div>
+        <div class="panel-body">
+          <p class="muted small" id="agentInfo" style="margin:0 0 12px">Checking…</p>
+          <label class="switch"><span>Answer incoming calls for me</span><input type="checkbox" id="autoAnswer"></label>
+          <label class="lbl" for="ownerName">Answers on behalf of</label>
+          <input class="field" id="ownerName" placeholder="Your name">
+          <label class="lbl" for="voice">Voice</label>
+          <select class="field" id="voice">
+            <option>Kore</option><option>Puck</option><option>Charon</option><option>Fenrir</option>
+            <option>Aoede</option><option>Leda</option><option>Orus</option><option>Zephyr</option>
+          </select>
+          <label class="lbl" for="about">About you</label>
+          <textarea class="field" id="about" rows="6" maxlength="4000"
+            placeholder="Alex is a software developer. If someone calls about the bike service, he'll pick it up on Saturday. Family can text him if it's urgent. Don't book meetings for him."></textarea>
+          <p class="hint">The assistant uses this on calls and shares only what's written here. Applies from the next call.</p>
+          <div class="row" style="margin-top:12px; justify-content:space-between">
+            <span class="muted small" id="aboutCount"></span>
+            <button class="btn" id="saveOwner">Save</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>Messages</h2><span class="muted small" id="msgCount"></span></div>
+        <ul class="list" id="messages" style="margin-top:8px"></ul>
+      </section>
+    </aside>
+  </div>
+</main>
+
+<!-- Connection ------------------------------------------------------------------------------->
+<main class="page" data-page="connection" hidden>
+  <h1 class="title">Connection</h1>
+  <p class="lede">Link an Android phone to this server and keep an eye on it. The phone connects out to the server, so it works on Wi-Fi or mobile data from anywhere.</p>
+
+  <section class="panel">
+    <div class="pair">
+      <div class="qr">
+        <div class="qr-box" id="qr" aria-label="Pairing QR code">Creating code…</div>
+        <div class="code" id="pairCode"></div>
+        <div class="muted small" id="pairExpiry"></div>
+      </div>
+      <div class="steps">
+        <h2 style="margin:0 0 12px; font-size:17px; font-weight:600">Connect a phone</h2>
+        <ol>
+          <li>Install the OpenLine app on the Android phone and make it the default phone app.</li>
+          <li>Open the app and tap <b>Scan QR</b>, or scan this code with the phone's camera.</li>
+          <li>Finish the setup steps in the app. The phone shows up below when it connects.</li>
+        </ol>
+        <label class="lbl" for="publicUrl">Address the phone uses to reach this server</label>
+        <div class="row" style="flex-wrap:nowrap">
+          <input class="field" id="publicUrl" placeholder="https://your-machine.ts.net">
+          <button class="btn" id="regenerate">New code</button>
+        </div>
+        <p class="warn" id="urlWarn" hidden>Phones can't reach localhost. Use your Tailscale Funnel or Cloudflare Tunnel address (save it in Settings).</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>Phones</h2><span class="muted small" id="phoneCount"></span></div>
+    <div id="devices" style="margin-top:6px"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>Endpoints</h2></div>
+    <div class="panel-body">
+      <dl class="kv" id="serverInfo"></dl>
+    </div>
+  </section>
+</main>
+
+<!-- Docs ------------------------------------------------------------------------------------->
+<main class="page" data-page="docs" hidden>
+  <h1 class="title">Docs</h1>
+  <p class="lede" id="docsText">The documentation site isn't published yet. Once it is, set its address in Settings and this link opens it.</p>
+  <a class="btn" href="#/settings">Set docs address</a>
+</main>
+
+<!-- Settings --------------------------------------------------------------------------------->
+<main class="page" data-page="settings" hidden>
+  <h1 class="title">Settings</h1>
+  <p class="lede">Saved in the server's database. Values here override <code>server\.env</code>.</p>
+  <div class="grid even">
+    <div>
+      <section class="panel">
+        <div class="panel-head"><h2>AI assistant</h2></div>
+        <div class="panel-body">
+          <label class="lbl" for="geminiKey">Gemini API key</label>
+          <input class="field" id="geminiKey" type="password" autocomplete="off" placeholder="AIza…">
+          <p class="hint" id="geminiKeyState"></p>
+          <label class="lbl" for="geminiModel">Live model</label>
+          <input class="field" id="geminiModel" placeholder="gemini-3.8-live">
+          <p class="hint">Get a key at aistudio.google.com. It never leaves this server.</p>
+          <div class="row" style="margin-top:14px; justify-content:flex-end">
+            <button class="btn link" id="clearGemini">Remove key</button>
+            <button class="btn solid" id="saveGemini">Save</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>Incoming calls</h2></div>
+        <div class="panel-body">
+          <label class="lbl" for="setIncomingUrl" style="margin-top:0">Stream to your agent</label>
+          <input class="field" id="setIncomingUrl" placeholder="wss://my-agent.example.com/ws">
+          <label class="lbl" for="setIncomingFormat">Audio format</label>
+          <select class="field" id="setIncomingFormat">
+            <option value="raw">Raw: 16 kHz PCM, binary frames</option>
+            <option value="twilio">Twilio Media Streams: 8 kHz mu-law JSON (Pipecat and others)</option>
+          </select>
+          <p class="hint">When set, every incoming call is answered and connected to this WebSocket. Your agent ends the call by closing the socket. Leave empty to handle calls yourself or with the built-in assistant.</p>
+          <div class="row" style="margin-top:14px; justify-content:flex-end">
+            <button class="btn solid" id="saveIncoming">Save</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>Server</h2></div>
+        <div class="panel-body">
+          <label class="lbl" for="setPublicUrl">Public address</label>
+          <input class="field" id="setPublicUrl" placeholder="https://your-machine.ts.net">
+          <p class="hint">Your Tailscale Funnel or Cloudflare Tunnel URL. Phones and webhooks use it.</p>
+          <label class="lbl" for="setWebhookUrl">Default webhook</label>
+          <input class="field" id="setWebhookUrl" placeholder="https://example.com/gateway/events">
+          <p class="hint">Gets every call event, signed with HMAC-SHA256. A call's own <code>webhookUrl</code> takes priority.</p>
+          <label class="lbl" for="setDocsUrl">Docs address</label>
+          <input class="field" id="setDocsUrl" placeholder="https://docs.example.com">
+          <div class="row" style="margin-top:14px; justify-content:flex-end">
+            <button class="btn solid" id="saveServer">Save</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div>
+      <section class="panel">
+        <div class="panel-head"><h2>API keys</h2></div>
+        <div class="panel-body" style="padding-bottom:12px">
+          <p class="muted small" style="margin:0">Give each app or agent its own key, so you can revoke one without touching the rest. Send it as <code>Authorization: Bearer &lt;key&gt;</code>.</p>
+          <form class="row" id="newKeyForm" style="margin-top:12px; flex-wrap:nowrap">
+            <input class="field" id="newKeyName" placeholder="Name, e.g. sales agent" maxlength="80">
+            <button class="btn" type="submit">Create</button>
+          </form>
+          <div class="new-key" id="newKey" hidden>
+            <p class="small" style="margin:0 0 6px"><b>Copy this key now.</b> It won't be shown again.</p>
+            <div class="row" style="flex-wrap:nowrap"><code id="newKeyValue" style="flex:1"></code><button class="btn" id="copyKey">Copy</button></div>
+          </div>
+        </div>
+        <div id="apiKeys" style="border-top:1px solid var(--line)"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>Account</h2><span class="muted small" id="accountEmail"></span></div>
+        <form class="panel-body" id="passwordForm">
+          <label class="lbl" for="curPassword">Current password</label>
+          <input class="field" id="curPassword" type="password" autocomplete="current-password" required>
+          <label class="lbl" for="newPassword">New password</label>
+          <input class="field" id="newPassword" type="password" autocomplete="new-password" minlength="8" required>
+          <p class="hint">Changing it signs you out in every other browser.</p>
+          <div class="row" style="margin-top:14px; justify-content:space-between">
+            <button class="btn link" type="button" id="signOut">Sign out</button>
+            <button class="btn solid" type="submit">Change password</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>People with access</h2></div>
+        <div id="users" style="margin-top:6px"></div>
+        <form class="panel-body" id="newUserForm" style="border-top:1px solid var(--line)">
+          <label class="lbl" for="newUserEmail" style="margin-top:0">Add someone</label>
+          <div class="row" style="flex-wrap:nowrap">
+            <input class="field" id="newUserEmail" type="email" placeholder="Email" autocomplete="off" required>
+            <input class="field" id="newUserPassword" type="password" placeholder="Password" autocomplete="new-password" minlength="8" required>
+            <button class="btn" type="submit">Add</button>
+          </div>
+          <p class="hint">They sign in with this email and password. Share the password privately.</p>
+        </form>
+      </section>
+    </div>
+  </div>
+</main>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const RATE = 16000, FRAME = 320; // 20 ms
+const LIVE = ["queued", "dialing", "ringing", "active", "held"];
+const STATE_TEXT = {
+  queued: "Calling…", dialing: "Calling…", ringing: "Ringing", active: "On call", held: "On hold",
+  ended: "Call ended", rejected: "Declined", failed: "Call failed",
+};
+const ORIGIN = location.origin;
+
+let route = "home";
+let selectedId = null;
+let calls = [];
+let devices = [];
+let server = {};
+let settings = null;
+let agentInfo = null;
+let agentConfig = null;
+let audio = null;
+let signedIn = false;
+const activeSince = new Map();
+const audioDismissed = new Set();
+
+// ---- API and sign-in -----------------------------------------------------------------------
+
+async function api(path, options = {}) {
+  const response = await fetch(path, {
+    ...options,
+    credentials: "same-origin",
+    headers: { "content-type": "application/json", ...(options.headers || {}) },
+  });
+  if (response.status === 204) return {};
+  const body = await response.json().catch(() => ({}));
+  if (response.status === 401 && !path.startsWith("/v1/auth/")) { showAuth(); throw new Error("Signed out"); }
+  if (!response.ok) throw new Error(body.error?.message || `Request failed (${response.status})`);
+  return body;
+}
+
+let setupMode = false;
+let setupKeyRequired = false;
+let me = null;
+async function boot() {
+  const status = await api("/v1/auth/status").catch(() => ({ setupRequired: false, authenticated: false }));
+  me = status.user;
+  if (status.authenticated) return showApp();
+  setupMode = status.setupRequired;
+  setupKeyRequired = status.setupKeyRequired;
+  showAuth();
+}
+
+function showAuth() {
+  signedIn = false;
+  if (audio) stopAudio();
+  $("appView").hidden = true;
+  $("authView").hidden = false;
+  $("setupFields").hidden = !(setupMode && setupKeyRequired);
+  $("confirmFields").hidden = !setupMode;
+  $("authTitle").textContent = setupMode ? "Create your account" : "Sign in";
+  $("authLede").textContent = setupMode ? "The first account owns this gateway." : "OpenLine console";
+  $("passwordLabel").textContent = setupMode ? "Choose a password" : "Password";
+  $("password").autocomplete = setupMode ? "new-password" : "current-password";
+  ($("email").value ? $("password") : $("email")).focus();
+}
+
+$("authForm").onsubmit = async (event) => {
+  event.preventDefault();
+  $("authError").hidden = true;
+  const email = $("email").value.trim();
+  const password = $("password").value;
+  try {
+    if (setupMode) {
+      if (password.length < 8) throw new Error("Use at least 8 characters for the password.");
+      if (password !== $("password2").value) throw new Error("The passwords don't match.");
+      const setupKey = $("setupKey").value.trim();
+      await api("/v1/auth/setup", { method: "POST", body: JSON.stringify({ email, password, ...(setupKey ? { setupKey } : {}) }) });
+    } else {
+      await api("/v1/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
+    }
+    $("password").value = $("password2").value = $("setupKey").value = "";
+    me = (await api("/v1/auth/status")).user;
+    showApp();
+  } catch (error) {
+    if (/already exists/.test(error.message)) { setupMode = false; showAuth(); }
+    $("authError").textContent = error.message;
+    $("authError").hidden = false;
+  }
+};
+
+async function showApp() {
+  signedIn = true;
+  $("authView").hidden = true;
+  $("appView").hidden = false;
+  server = await api("/v1/server").catch(() => ({}));
+  renderDocsLink();
+  onRoute();
+}
+
+$("signOut").onclick = async () => {
+  await api("/v1/auth/logout", { method: "POST" }).catch(() => {});
+  setupMode = false;
+  showAuth();
+};
+
+function toast(text) {
+  const el = $("toast");
+  el.textContent = text;
+  el.hidden = false;
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => (el.hidden = true), 3500);
+}
+
+// ---- Routing -------------------------------------------------------------------------------
+
+const ROUTES = ["home", "playground", "connection", "docs", "settings"];
+window.addEventListener("hashchange", onRoute);
+
+function onRoute() {
+  const name = location.hash.replace(/^#\/?/, "").split("?")[0] || "home";
+  route = ROUTES.includes(name) ? name : "home";
+  if (route === "docs" && server.docsUrl) {
+    window.open(server.docsUrl, "_blank", "noopener");
+    history.replaceState(null, "", "#/");
+    route = "home";
+  }
+  document.querySelectorAll("[data-page]").forEach((el) => (el.hidden = el.dataset.page !== route));
+  document.querySelectorAll(".nav a").forEach((a) => a.setAttribute("aria-current", a.dataset.route === route ? "page" : "false"));
+  if (route === "connection") ensurePairingCode();
+  if (route === "settings") loadSettings();
+  if (route === "home") renderHome();
+  refresh();
+}
+
+function renderDocsLink() {
+  const link = $("docsLink");
+  if (server.docsUrl) {
+    link.href = server.docsUrl;
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.textContent = "Docs ↗";
+  } else {
+    link.href = "#/docs";
+    link.removeAttribute("target");
+    link.textContent = "Docs";
+  }
+}
+
+// ---- Refresh loop --------------------------------------------------------------------------
+
+let refreshing = false;
+async function refresh() {
+  if (!signedIn || refreshing || document.hidden) return;
+  refreshing = true;
+  try {
+    devices = (await api("/v1/devices")).devices;
+    renderPhoneStatus();
+    if (route === "playground") await refreshPlayground();
+    if (route === "connection") { renderDevices(); renderServerInfo(); checkPairingDone(); }
+    if (route === "home") renderChecklist();
+  } catch (error) {
+    if (signedIn) setPhoneStatus("bad", error.message);
+  } finally {
+    refreshing = false;
+  }
+}
+setInterval(refresh, 1000);
+document.addEventListener("visibilitychange", refresh);
+
+function setPhoneStatus(kind, text) {
+  $("phoneStatus").innerHTML = `<span class="dot ${kind}"></span><span>${esc(text)}</span>`;
+}
+
+function renderPhoneStatus() {
+  const online = devices.filter((d) => d.connected);
+  if (!devices.length) setPhoneStatus("", "No phone");
+  else if (online.length) setPhoneStatus("live", `${online[0].name || online[0].id} online`);
+  else setPhoneStatus("bad", `${devices[0].name || devices[0].id} offline`);
+}
+
+// ---- Home ----------------------------------------------------------------------------------
+
+const ENDPOINTS = [
+  ["POST", "/v1/calls", "Place a call from a phone"],
+  ["GET", "/v1/calls", "List calls, newest first (filter, page with ?before=)"],
+  ["GET", "/v1/calls/:id", "One call and its media stream info"],
+  ["POST", "/v1/calls/:id/answer", "Answer, also reject, hangup, hold, unhold, dtmf"],
+  ["POST", "/v1/calls/:id/stream", "Connect a live call to your agent's WebSocket"],
+  ["WS", "/v1/calls/:id/media", "Or join the call audio yourself, 16 kHz PCM"],
+  ["GET", "/v1/calls/:id/events", "Event timeline of a call"],
+  ["GET", "/v1/calls/:id/transcript", "What the assistant and caller said"],
+  ["POST", "/v1/calls/:id/agent", "Hand a call to the AI assistant"],
+  ["GET", "/v1/devices", "Phones with live health"],
+  ["GET", "/v1/webhook-deliveries", "Webhook attempts and failures"],
+  ["POST", "/v1/api-keys", "Create an API key"],
+];
+
+function renderHome() {
+  const base = server.publicUrl || ORIGIN;
+  const phone = devices.find((d) => d.connected) || devices[0];
+  $("curlCall").innerHTML = copyable(`curl -X POST ${base}/v1/calls \\
+  -H "Authorization: Bearer $OPENLINE_KEY" \\
+  -H "content-type: application/json" \\
+  -d '{"deviceId":"${phone?.id || "phone-xxxx"}","to":"+919876543210",
+       "stream":{"url":"wss://my-agent.example.com/ws","format":"twilio"},
+       "webhookUrl":"https://you.example/events"}'`);
+  $("wsSnippet").innerHTML = copyable(`# when the call connects, the gateway opens your agent's WebSocket.
+# "twilio" speaks Twilio Media Streams (works with Pipecat's Twilio serializer);
+# "raw" sends {type:"start"} then binary 16 kHz PCM both ways.
+# Close the socket to hang up.`);
+  $("endpointRows").innerHTML = ENDPOINTS.map(([verb, path, text]) =>
+    `<tr><td><span class="verb">${verb}</span>${esc(path)}</td><td class="muted">${esc(text)}</td></tr>`).join("");
+  wireCopy();
+  renderChecklist();
+}
+
+let checklistData = { keys: null, gemini: null };
+async function renderChecklist() {
+  if (checklistData.keys === null) {
+    const [keys, s] = await Promise.all([api("/v1/api-keys").catch(() => null), api("/v1/settings").catch(() => null)]);
+    checklistData = { keys: keys?.apiKeys.length ?? 0, gemini: s?.settings.geminiApiKey.configured ?? false, publicUrl: s?.settings.publicUrl };
+  }
+  const items = [
+    [true, "Create your account", me ? `Signed in as ${me.email}.` : "You're signed in.", null],
+    [Boolean(checklistData.publicUrl), "Public address", "So the phone can reach this server from anywhere.", "#/settings"],
+    [devices.length > 0, "Connect a phone", devices.length ? `${devices.length} paired` : "Scan the QR code with the OpenLine app.", "#/connection"],
+    [checklistData.keys > 0, "Create an API key", "For your apps and agents.", "#/settings"],
+    [checklistData.gemini, "Add a Gemini key", "Optional. Turns on the built-in AI assistant.", "#/settings"],
+  ];
+  $("checklist").innerHTML = items.map(([done, title, text, href]) => `<li class="${done ? "done" : ""}">
+      <span class="mark">${done ? "✓" : ""}</span>
+      <span class="grow"><b>${esc(title)}</b><br><span class="muted small">${esc(text)}</span></span>
+      ${!done && href ? `<a class="btn link" href="${href}">Open</a>` : ""}
+    </li>`).join("");
+}
+
+function copyable(text) {
+  return `<button class="btn copy" type="button" data-copy>Copy</button>${esc(text)}`;
+}
+
+function wireCopy() {
+  document.querySelectorAll("[data-copy]").forEach((b) => (b.onclick = async () => {
+    const text = b.parentElement.textContent.replace(/^Copy/, "");
+    try { await navigator.clipboard.writeText(text); b.textContent = "Copied"; } catch { b.textContent = "Select and copy"; }
+    setTimeout(() => (b.textContent = "Copy"), 1500);
+  }));
+}
+
+// ---- Playground ----------------------------------------------------------------------------
+
+async function refreshPlayground() {
+  const [callList, config, msgList] = await Promise.all([
+    api("/v1/calls?limit=25"), api("/v1/agent"), api("/v1/agent/messages?limit=50"),
+  ]);
+  calls = callList.calls;
+  const live = calls.find((c) => LIVE.includes(c.state));
+  if (live && (!selectedId || !LIVE.includes(calls.find((c) => c.id === selectedId)?.state))) selectedId = live.id;
+  agentInfo = selectedId ? await api(`/v1/calls/${encodeURIComponent(selectedId)}/agent`).catch(() => null) : null;
+  renderAgentConfig(config);
+  renderMessages(msgList.messages);
+  renderCalls();
+  renderLine();
+  renderDialCurl();
+}
+
+function renderCalls() {
+  $("calls").innerHTML = calls.length
+    ? calls.map((c) => `<li><button class="call-row" data-id="${esc(c.id)}" aria-current="${c.id === selectedId}">
+        <span class="dir" aria-label="${c.direction}">${c.direction === "incoming" ? "↙" : "↗"}</span>
+        <span class="num">${esc(formatNumber(c.remoteNumber))}</span>
+        <span class="when">${timeAgo(c.createdAt)}</span>
+        <span class="st">${esc(STATE_TEXT[c.state] || c.state)}${duration(c)}</span>
+      </button></li>`).join("")
+    : `<li class="empty">No calls yet. Dial a number above, or wait for one to come in.</li>`;
+  $("calls").querySelectorAll(".call-row").forEach((el) => el.onclick = () => {
+    selectedId = el.dataset.id;
+    lastEventsFor = null;
+    refresh();
+  });
+}
+
+function duration(c) {
+  if (!c.answeredAt || !c.endedAt) return "";
+  const s = Math.round((Date.parse(c.endedAt) - Date.parse(c.answeredAt)) / 1000);
+  return `, ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+function renderDialCurl() {
+  const phone = devices.find((d) => d.connected) || devices[0];
+  const to = $("number").value.trim() || "+919876543210";
+  const text = `curl -X POST ${server.publicUrl || ORIGIN}/v1/calls \\
+  -H "Authorization: Bearer $OPENLINE_KEY" -H "content-type: application/json" \\
+  -d '{"deviceId":"${phone?.id || "phone-xxxx"}","to":"${to}"}'`;
+  if ($("dialCurl").dataset.text !== text) {
+    $("dialCurl").dataset.text = text;
+    $("dialCurl").innerHTML = copyable(text);
+    wireCopy();
+  }
+}
+
+function renderLine() {
+  const call = calls.find((c) => c.id === selectedId);
+  const live = call && LIVE.includes(call.state);
+  $("idle").hidden = !!live;
+  $("active").hidden = !call; // an ended call stays shown below the dial pad with its transcript and events
+  if (!call) {
+    $("idleHint").hidden = false;
+    $("lineDot").className = "dot";
+    $("lineState").textContent = devices.some((d) => d.connected) ? "Ready" : "Phone offline";
+    $("idleHint").textContent = devices.length ? "Incoming calls appear here." : "Connect a phone to place and receive calls.";
+    return;
+  }
+  if (call.state === "active" && !activeSince.has(call.id)) activeSince.set(call.id, call.answeredAt ? Date.parse(call.answeredAt) : Date.now());
+  const ringing = call.state === "ringing" || call.state === "dialing" || call.state === "queued";
+  $("lineDot").className = `dot ${call.state === "active" ? "live" : ringing ? "ring" : ""}`;
+  $("lineState").textContent = `${STATE_TEXT[call.state] || call.state}${call.direction === "incoming" ? ", incoming" : ""}`;
+  $("lineNumber").textContent = formatNumber(call.remoteNumber);
+  $("lineMeta").textContent = new Date(call.createdAt).toLocaleString([], { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" });
+  updateTimer();
+
+  const can = {
+    answer: call.state === "ringing" && call.direction === "incoming",
+    reject: call.state === "ringing" && call.direction === "incoming",
+    hold: call.state === "active",
+    unhold: call.state === "held",
+    hangup: live,
+  };
+  document.querySelectorAll("[data-action]").forEach((b) => (b.hidden = !can[b.dataset.action]));
+  $("keypadToggle").hidden = call.state !== "active";
+  $("idleHint").hidden = true;
+
+  renderAgent(call, live);
+  loadEvents(call);
+  const aiOwnsCall = agentInfo && agentInfo.status !== "off";
+  if (call.state === "active" && !audio && !aiOwnsCall && !audioDismissed.has(call.id)) startAudio(call.id);
+  if (audio && audio.callId === call.id && (!live || (aiOwnsCall && !audio.listen))) stopAudio("Off.");
+  $("audioToggle").disabled = !live || aiOwnsCall || audio?.listen;
+  $("listenToggle").disabled = !live || (audio && !audio.listen);
+}
+
+let lastEventsFor = null;
+async function loadEvents(call) {
+  const key = `${call.id}:${call.updatedAt}`;
+  if (lastEventsFor === key) return;
+  lastEventsFor = key;
+  const { events } = await api(`/v1/calls/${encodeURIComponent(call.id)}/events`).catch(() => ({ events: [] }));
+  $("callEvents").textContent = events.length
+    ? events.map((e) => `${new Date(e.receivedAt).toLocaleTimeString()}  ${e.event}`).join("\n")
+    : "No events yet.";
+}
+
+function updateTimer() {
+  const call = calls.find((c) => c.id === selectedId);
+  const since = call && activeSince.get(call.id);
+  $("timer").hidden = !since || !call || !LIVE.includes(call.state);
+  if ($("timer").hidden) return;
+  const s = Math.max(0, Math.floor((Date.now() - since) / 1000));
+  $("timer").textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+setInterval(updateTimer, 500);
+
+$("number").addEventListener("input", renderDialCurl);
+$("dialForm").onsubmit = async (event) => {
+  event.preventDefault();
+  const to = $("number").value.trim();
+  const phone = devices.find((d) => d.connected);
+  if (!to) return $("number").focus();
+  if (!phone) return toast("No phone online. Check the Connection page.");
+  try {
+    const { call } = await api("/v1/calls", { method: "POST", body: JSON.stringify({ deviceId: phone.id, to }) });
+    selectedId = call.id;
+    $("number").value = "";
+    refresh();
+  } catch (error) {
+    toast(error.message);
+  }
+};
+
+document.querySelectorAll("[data-action]").forEach((b) => (b.onclick = () => action(b.dataset.action)));
+
+async function action(name, body = {}) {
+  if (!selectedId) return;
+  try {
+    await api(`/v1/calls/${encodeURIComponent(selectedId)}/${name}`, { method: "POST", body: JSON.stringify(body) });
+    setTimeout(refresh, 300);
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+$("keypad").innerHTML = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"]
+  .map((d) => `<button class="btn" data-digit="${d}">${d}</button>`).join("");
+$("keypad").querySelectorAll("button").forEach((b) => (b.onclick = () => action("dtmf", { digits: b.dataset.digit })));
+$("keypadToggle").onclick = () => {
+  const open = $("keypad").hidden;
+  $("keypad").hidden = !open;
+  $("keypadToggle").setAttribute("aria-expanded", String(open));
+};
+
+// ---- Assistant -----------------------------------------------------------------------------
+
+function renderAgentConfig(config) {
+  const first = !agentConfig;
+  agentConfig = config;
+  $("agentInfo").innerHTML = config.configured
+    ? "Answers calls, asks who is calling and why, and leaves you a message."
+    : `Off until you add a Gemini API key in <a href="#/settings">Settings</a>.`;
+  $("autoAnswer").disabled = !config.configured;
+  if (first && config.settings) {
+    $("autoAnswer").checked = config.settings.autoAnswer;
+    $("ownerName").value = config.settings.ownerName;
+    $("voice").value = config.settings.voice || "Kore";
+    $("about").value = config.settings.about || "";
+    countAbout();
+  }
+}
+
+async function saveAgent() {
+  try {
+    const { settings } = await api("/v1/agent", {
+      method: "PUT",
+      body: JSON.stringify({
+        autoAnswer: $("autoAnswer").checked,
+        ownerName: $("ownerName").value.trim() || "the owner",
+        voice: $("voice").value,
+        about: $("about").value.trim(),
+      }),
+    });
+    toast(settings.autoAnswer ? `Saved. The assistant answers calls for ${settings.ownerName}.` : "Saved. The assistant won't answer calls.");
+  } catch (error) {
+    toast(error.message);
+  }
+}
+$("autoAnswer").onchange = saveAgent;
+function countAbout() {
+  const n = $("about").value.length;
+  $("aboutCount").textContent = n ? `${n} / 4000` : "";
+}
+$("about").oninput = countAbout;
+$("saveOwner").onclick = saveAgent;
+
+function renderAgent(call, live) {
+  const info = agentInfo || { status: "off", transcript: [] };
+  const on = info.status !== "off";
+  const text = {
+    off: live ? "Not on this call." : "Wasn't used on this call.",
+    waiting: "Joining when the call connects…",
+    connecting: "Joining…",
+    live: "Talking with the caller.",
+    ended: "Finished.",
+    error: `Stopped: ${info.error || "unknown error"}`,
+  };
+  $("aiDot").className = `dot ${info.status === "live" ? "live" : info.status === "error" ? "bad" : ""}`;
+  $("aiState").textContent = text[info.status] || info.status;
+  $("aiToggle").textContent = on && live ? "Take over from assistant" : "Hand to assistant";
+  $("aiToggle").disabled = !live || !agentConfig?.configured;
+
+  const box = $("transcript");
+  const atBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 8;
+  box.innerHTML = info.transcript.map((t) =>
+    `<div class="turn ${t.role}"><span class="who">${t.role === "agent" ? "Assistant" : "Caller"}</span>${esc(t.text)}</div>`).join("");
+  if (atBottom) box.scrollTop = box.scrollHeight;
+  $("callMessage").innerHTML = info.message ? `<div style="border-top:1px solid var(--line); margin-top:14px">${messageHtml(info.message)}</div>` : "";
+}
+
+$("aiToggle").onclick = async () => {
+  if (!selectedId) return;
+  const on = agentInfo && agentInfo.status !== "off";
+  try {
+    if (on) {
+      await api(`/v1/calls/${encodeURIComponent(selectedId)}/agent`, { method: "DELETE" });
+    } else {
+      if (audio) stopAudio("Off.");
+      await api(`/v1/calls/${encodeURIComponent(selectedId)}/agent`, { method: "POST" });
+    }
+    setTimeout(refresh, 300);
+  } catch (error) {
+    toast(error.message);
+  }
+};
+
+function renderMessages(messages) {
+  $("msgCount").textContent = messages.length ? String(messages.length) : "";
+  $("messages").innerHTML = messages.length
+    ? messages.map((m) => `<li>${messageHtml(m)}</li>`).join("")
+    : `<li class="empty">Messages the assistant takes for you show up here.</li>`;
+}
+
+function messageHtml(m) {
+  const urgent = m.urgency === "high" ? `<span class="urgent">Urgent. </span>` : "";
+  const back = m.callbackNumber ? `Call back on ${esc(m.callbackNumber)}. ` : "";
+  return `<div class="msg">
+    <div class="name">${esc(m.callerName || "Unknown caller")}</div>
+    <div class="reason">${urgent}${esc(m.reason || "Didn't say why they called.")}</div>
+    <div class="meta">${back}From ${esc(formatNumber(m.remoteNumber))}, ${timeAgo(m.takenAt)}</div>
+  </div>`;
+}
+
+// ---- Connection ----------------------------------------------------------------------------
+
+let pairing = null; // { deviceIds, expiresAt }
+
+$("regenerate").onclick = () => createCode();
+$("publicUrl").addEventListener("keydown", (e) => { if (e.key === "Enter") createCode(); });
+
+function ensurePairingCode() {
+  if (pairing && pairing.expiresAt > Date.now() + 30_000) return;
+  if (!$("publicUrl").value) $("publicUrl").value = server.publicUrl || ORIGIN;
+  createCode();
+}
+
+async function createCode() {
+  const publicUrl = $("publicUrl").value.trim().replace(/\/+$/, "");
+  $("urlWarn").hidden = !/\/\/(localhost|127\.|\[::1\])/.test(publicUrl);
+  try {
+    const result = await api("/v1/pairing", { method: "POST", body: JSON.stringify(publicUrl ? { publicUrl } : {}) });
+    $("qr").innerHTML = result.qrSvg;
+    $("pairCode").textContent = result.code.replace(/(.{4})/, "$1 ");
+    pairing = { deviceIds: new Set(devices.map((d) => d.id)), expiresAt: Date.parse(result.expiresAt) };
+    tickExpiry();
+  } catch (error) {
+    $("qr").textContent = "";
+    $("pairCode").textContent = "";
+    $("pairExpiry").textContent = error.message;
+  }
+}
+
+function tickExpiry() {
+  if (!pairing) return;
+  const left = Math.max(0, Math.round((pairing.expiresAt - Date.now()) / 1000));
+  $("pairExpiry").textContent = left ? `Code works for ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` : "Code expired. Get a new one.";
+}
+setInterval(tickExpiry, 1000);
+
+function checkPairingDone() {
+  if (!pairing) return;
+  const added = devices.find((d) => !pairing.deviceIds.has(d.id));
+  if (added) {
+    toast(`${added.name || added.id} connected`);
+    pairing = null;
+    createCode();
+  }
+}
+
+const AUDIO_TEXT = {
+  running: ["Ready", ""],
+  stopped: ["Stopped", "bad"],
+  pairing_required: ["Not set up", "bad"],
+  unsupported: ["Unsupported", "bad"],
+};
+const NETWORK_TEXT = { wifi: "Wi-Fi", cellular: "Mobile data", ethernet: "Ethernet", none: "None" };
+
+function renderDevices() {
+  $("phoneCount").textContent = devices.length ? `${devices.filter((d) => d.connected).length} of ${devices.length} online` : "";
+  $("devices").innerHTML = devices.length ? devices.map(deviceHtml).join("")
+    : `<div class="empty">No phones yet. Scan the code above with the OpenLine app.</div>`;
+  $("devices").querySelectorAll("[data-forget]").forEach((b) => b.onclick = async () => {
+    if (!confirm("Remove this phone? It will need to scan a new code to reconnect.")) return;
+    await api(`/v1/devices/${encodeURIComponent(b.dataset.forget)}`, { method: "DELETE" }).catch((e) => toast(e.message));
+    refresh();
+  });
+}
+
+function deviceHtml(d) {
+  const h = d.health || {};
+  const stale = !d.connected;
+  const audioText = AUDIO_TEXT[h.audio] || [h.audio ? h.audio : "Unknown", ""];
+  const stat = (k, v, cls = "") => `<div class="stat"><div class="k">${k}</div><div class="v ${cls}">${v}</div></div>`;
+  const bars = h.signal === undefined ? "" :
+    `<span class="bars" aria-hidden="true">${[1, 2, 3, 4].map((n) => `<i class="${h.signal >= n ? "on" : ""}" style="height:${n * 3}px"></i>`).join("")}</span>`;
+  return `<div class="device">
+    <div class="device-head">
+      <span class="dot ${d.connected ? "live" : "bad"}"></span>
+      <span class="grow"><span class="device-name">${esc(d.name || d.id)}</span>
+        <span class="muted small"> · ${d.connected ? "Online" : `Offline, last seen ${timeAgo(d.lastSeenAt)}`}</span><br>
+        <span class="muted small">${esc([h.model, h.android && `Android ${h.android}`, h.appVersion && `app ${h.appVersion}`].filter(Boolean).join(" · ") || d.id)}</span></span>
+      <button class="btn link" data-forget="${esc(d.id)}">Remove</button>
+    </div>
+    <div class="stats">
+      ${stat("Response time", d.latencyMs !== undefined ? `${d.latencyMs} ms` : "—")}
+      ${stat("Network", esc(NETWORK_TEXT[h.network] || h.network || "—"))}
+      ${stat("Signal", h.signal !== undefined ? `${bars}${esc(h.carrier || "")}` : esc(h.carrier || "—"))}
+      ${stat("Battery", h.battery !== undefined ? `${h.battery}%${h.charging ? ", charging" : ""}` : "—", h.battery !== undefined && h.battery < 15 && !h.charging ? "bad" : "")}
+      ${stat("Call audio", audioText[0], audioText[1])}
+      ${stat("Last report", h.reportedAt ? timeAgo(h.reportedAt) : "—")}
+    </div>
+    ${h.audio === "stopped" ? `<p class="hint" style="margin-top:12px">Call audio needs the phone on Wi-Fi once to start. Open the OpenLine app on the phone.</p>` : ""}
+    ${stale && d.health ? `<p class="hint" style="margin-top:12px">Shown values are from the last report before it went offline.</p>` : ""}
+  </div>`;
+}
+
+function renderServerInfo() {
+  const base = server.publicUrl || ORIGIN;
+  const ws = base.replace(/^http/, "ws");
+  const rows = [
+    ["Public address", server.publicUrl || `Not set (using ${ORIGIN})`],
+    ["REST API", `${base}/v1`],
+    ["Phone channel", `${ws}/v1/device-channel`],
+    ["Call audio", `${ws}/v1/calls/<id>/media`],
+  ];
+  const html = rows.map(([k, v]) => `<dt>${k}</dt><dd><code>${esc(v)}</code></dd>`).join("");
+  if ($("serverInfo").innerHTML !== html) $("serverInfo").innerHTML = html;
+}
+
+// ---- Settings ------------------------------------------------------------------------------
+
+async function loadSettings() {
+  try {
+    const [{ settings: s }, { apiKeys }] = await Promise.all([api("/v1/settings"), api("/v1/api-keys")]);
+    settings = s;
+    renderGeminiState();
+    $("geminiModel").value = s.geminiModel || "";
+    $("setPublicUrl").value = s.publicUrl || "";
+    $("setWebhookUrl").value = s.webhookUrl || "";
+    $("setDocsUrl").value = s.docsUrl || "";
+    $("setIncomingUrl").value = s.incomingStreamUrl || "";
+    $("setIncomingFormat").value = s.incomingStreamFormat || "raw";
+    renderApiKeys(apiKeys);
+    $("accountEmail").textContent = me ? me.email : "";
+    renderUsers((await api("/v1/users")).users);
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+function renderUsers(users) {
+  $("users").innerHTML = users.map((u) => `<div class="key-row">
+      <span class="grow"><b>${esc(u.email)}</b>${me && u.id === me.id ? ` <span class="muted small">(you)</span>` : ""}<br>
+        <span class="muted small">Added ${timeAgo(u.createdAt)}</span></span>
+      ${users.length > 1 && !(me && u.id === me.id) ? `<button class="btn link" data-remove-user="${esc(u.id)}">Remove</button>` : ""}
+    </div>`).join("");
+  $("users").querySelectorAll("[data-remove-user]").forEach((b) => b.onclick = async () => {
+    if (!confirm("Remove this person's access? They're signed out at once.")) return;
+    await api(`/v1/users/${encodeURIComponent(b.dataset.removeUser)}`, { method: "DELETE" }).catch((e) => toast(e.message));
+    loadSettings();
+  });
+}
+
+$("newUserForm").onsubmit = async (event) => {
+  event.preventDefault();
+  try {
+    await api("/v1/users", { method: "POST", body: JSON.stringify({ email: $("newUserEmail").value.trim(), password: $("newUserPassword").value }) });
+    toast(`${$("newUserEmail").value.trim()} can now sign in.`);
+    $("newUserEmail").value = $("newUserPassword").value = "";
+    loadSettings();
+  } catch (error) {
+    toast(error.message);
+  }
+};
+
+function renderGeminiState() {
+  const g = settings.geminiApiKey;
+  $("geminiKey").value = "";
+  $("geminiKey").placeholder = g.configured ? `Saved key ${g.hint}. Paste a new one to replace it.` : "AIza…";
+  $("geminiKeyState").textContent = g.configured
+    ? `Set${g.source === "env" ? " in server\\.env" : ""}. The assistant is available.`
+    : "Not set. The AI assistant is off.";
+  $("clearGemini").hidden = g.source !== "console";
+}
+
+async function saveSettings(patch, done) {
+  try {
+    const { settings: s } = await api("/v1/settings", { method: "PUT", body: JSON.stringify(patch) });
+    settings = s;
+    server = { ...server, publicUrl: s.publicUrl, docsUrl: s.docsUrl };
+    renderGeminiState();
+    renderDocsLink();
+    checklistData.keys = null;
+    toast(done);
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+$("saveGemini").onclick = () => {
+  const patch = { geminiModel: $("geminiModel").value.trim() };
+  const key = $("geminiKey").value.trim();
+  if (key) patch.geminiApiKey = key;
+  saveSettings(patch, "Saved. New calls use these settings.");
+};
+$("clearGemini").onclick = () => {
+  if (confirm("Remove the saved Gemini key?")) saveSettings({ geminiApiKey: "" }, "Gemini key removed.");
+};
+$("saveIncoming").onclick = () => saveSettings({
+  incomingStreamUrl: $("setIncomingUrl").value.trim(),
+  incomingStreamFormat: $("setIncomingFormat").value,
+}, $("setIncomingUrl").value.trim() ? "Saved. Incoming calls go to your agent." : "Saved. Incoming calls aren't streamed.");
+$("saveServer").onclick = () => saveSettings({
+  publicUrl: $("setPublicUrl").value.trim().replace(/\/+$/, ""),
+  webhookUrl: $("setWebhookUrl").value.trim(),
+  docsUrl: $("setDocsUrl").value.trim(),
+}, "Saved.");
+
+function renderApiKeys(keys) {
+  $("apiKeys").innerHTML = keys.length ? keys.map((k) => `<div class="key-row">
+      <span class="grow"><b>${esc(k.name)}</b> <code class="muted">${esc(k.prefix)}…</code><br>
+        <span class="muted small">Created ${timeAgo(k.createdAt)} · ${k.lastUsedAt ? `used ${timeAgo(k.lastUsedAt)}` : "never used"}</span></span>
+      <button class="btn link" data-revoke="${esc(k.id)}">Revoke</button>
+    </div>`).join("")
+    : `<div class="empty">No API keys yet. The key in server\\.env also works.</div>`;
+  $("apiKeys").querySelectorAll("[data-revoke]").forEach((b) => b.onclick = async () => {
+    if (!confirm("Revoke this key? Apps using it stop working at once.")) return;
+    await api(`/v1/api-keys/${encodeURIComponent(b.dataset.revoke)}`, { method: "DELETE" }).catch((e) => toast(e.message));
+    checklistData.keys = null;
+    loadSettings();
+  });
+}
+
+$("newKeyForm").onsubmit = async (event) => {
+  event.preventDefault();
+  const name = $("newKeyName").value.trim();
+  if (!name) return $("newKeyName").focus();
+  try {
+    const { apiKey } = await api("/v1/api-keys", { method: "POST", body: JSON.stringify({ name }) });
+    $("newKeyName").value = "";
+    $("newKeyValue").textContent = apiKey.key;
+    $("newKey").hidden = false;
+    checklistData.keys = null;
+    loadSettings();
+  } catch (error) {
+    toast(error.message);
+  }
+};
+$("copyKey").onclick = async () => {
+  try { await navigator.clipboard.writeText($("newKeyValue").textContent); toast("Copied"); } catch { toast("Select the key and copy it"); }
+};
+
+$("passwordForm").onsubmit = async (event) => {
+  event.preventDefault();
+  try {
+    await api("/v1/auth/password", { method: "POST", body: JSON.stringify({ current: $("curPassword").value, password: $("newPassword").value }) });
+    $("curPassword").value = $("newPassword").value = "";
+    toast("Password changed.");
+  } catch (error) {
+    toast(error.message);
+  }
+};
+
+// ---- Laptop audio --------------------------------------------------------------------------
+
+const workletSource = `
+class PcmCapture extends AudioWorkletProcessor {
+  constructor() { super(); this.buf = new Int16Array(${FRAME}); this.n = 0; }
+  process(inputs) {
+    const ch = inputs[0] && inputs[0][0];
+    if (!ch) return true;
+    for (let i = 0; i < ch.length; i++) {
+      const s = Math.max(-1, Math.min(1, ch[i]));
+      this.buf[this.n++] = s < 0 ? s * 0x8000 : s * 0x7fff;
+      if (this.n === this.buf.length) {
+        this.port.postMessage(this.buf.buffer, [this.buf.buffer]);
+        this.buf = new Int16Array(${FRAME}); this.n = 0;
+      }
+    }
+    return true;
+  }
+}
+registerProcessor("pcm-capture", PcmCapture);`;
+
+const mediaUrl = (callId, listen) =>
+  `${ORIGIN.replace(/^http/, "ws")}/v1/calls/${encodeURIComponent(callId)}/media${listen ? "?mode=listen" : ""}`;
+
+$("listenToggle").onclick = () => {
+  if (audio?.listen) { stopAudio("Off."); return; }
+  if (selectedId) startAudio(selectedId, true);
+};
+
+$("audioToggle").onclick = () => {
+  if (audio) { audioDismissed.add(audio.callId); stopAudio("Off."); }
+  else if (selectedId) { audioDismissed.delete(selectedId); startAudio(selectedId); }
+};
+$("micToggle").onclick = () => {
+  if (!audio) return;
+  audio.micOn = !audio.micOn;
+  $("micToggle").textContent = audio.micOn ? "Mute" : "Unmute";
+};
+
+async function startAudio(callId, listen = false) {
+  if (audio) stopAudio();
+  const state = { callId, listen, micOn: true, playHead: 0, heads: { 1: 0, 2: 0 }, queued: { 1: [], 2: [] } };
+  audio = state;
+  setAudioState("Connecting…");
+  try {
+    state.ctx = new AudioContext({ sampleRate: RATE });
+    await state.ctx.resume();
+    if (listen) return startListening(state);
+    await state.ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([workletSource], { type: "text/javascript" })));
+    state.stream = await navigator.mediaDevices.getUserMedia({
+      audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+    });
+    if (audio !== state) return closeAudio(state);
+    state.out = state.ctx.createGain();
+    state.out.connect(state.ctx.destination);
+    const mic = state.ctx.createMediaStreamSource(state.stream);
+    const capture = new AudioWorkletNode(state.ctx, "pcm-capture");
+    const sink = state.ctx.createGain();
+    sink.gain.value = 0;
+    mic.connect(capture).connect(sink).connect(state.ctx.destination);
+    capture.port.onmessage = (event) => {
+      meter("inMeter", new Int16Array(event.data));
+      if (state.micOn && state.ws?.readyState === WebSocket.OPEN) state.ws.send(event.data);
+    };
+    state.ws = new WebSocket(mediaUrl(callId, false));
+    state.ws.binaryType = "arraybuffer";
+    state.ws.onopen = () => setAudioState("Waiting for the phone…");
+    state.ws.onmessage = (event) => {
+      if (typeof event.data === "string") {
+        const msg = JSON.parse(event.data);
+        if (msg.type === "start") setAudioState("Live. You're talking from this laptop.", true);
+        if (msg.type === "stop") setAudioState("The phone stopped sending audio.");
+        return;
+      }
+      play(state, event.data);
+    };
+    state.ws.onclose = () => { if (audio === state) stopAudio("Off."); };
+    $("micToggle").disabled = false;
+    $("audioToggle").textContent = "Stop laptop audio";
+  } catch (error) {
+    stopAudio(`Couldn't start: ${error.message}`);
+  }
+}
+
+/** Listen-only: both sides of the call, each on its own timeline (1 = caller, 2 = assistant). */
+function startListening(state) {
+  state.out = state.ctx.createGain();
+  state.out.connect(state.ctx.destination);
+  $("inLabel").textContent = "Assistant";
+  state.ws = new WebSocket(mediaUrl(state.callId, true));
+  state.ws.binaryType = "arraybuffer";
+  state.ws.onopen = () => setAudioState("Waiting for the phone…");
+  state.ws.onmessage = (event) => {
+    if (typeof event.data === "string") {
+      const msg = JSON.parse(event.data);
+      if (msg.type === "start") setAudioState("Listening. Nobody on the call can hear you.", true);
+      if (msg.type === "stop") setAudioState("The phone stopped sending audio.");
+      if (msg.type === "clear") dropQueued(state, 2);
+      return;
+    }
+    const bytes = new Uint8Array(event.data);
+    const channel = bytes[0] === 2 ? 2 : 1;
+    playChannel(state, channel, bytes.slice(1).buffer);
+  };
+  state.ws.onclose = () => { if (audio === state) stopAudio("Off."); };
+  $("listenToggle").textContent = "Stop listening";
+}
+
+function playChannel(state, channel, buffer) {
+  const pcm = new Int16Array(buffer.byteLength % 2 ? buffer.slice(0, -1) : buffer);
+  meter(channel === 1 ? "outMeter" : "inMeter", pcm);
+  const samples = new Float32Array(pcm.length);
+  for (let i = 0; i < pcm.length; i++) samples[i] = pcm[i] / 32768;
+  const chunk = state.ctx.createBuffer(1, samples.length, RATE);
+  chunk.copyToChannel(samples, 0);
+  const source = state.ctx.createBufferSource();
+  source.buffer = chunk;
+  source.connect(state.out);
+  const now = state.ctx.currentTime;
+  // The caller arrives in real time; the assistant's speech arrives in bursts and queues up.
+  if (state.heads[channel] < now + 0.02 || (channel === 1 && state.heads[channel] > now + 0.4)) {
+    state.heads[channel] = now + 0.08;
+  }
+  source.start(state.heads[channel]);
+  state.heads[channel] += chunk.duration;
+  const queue = state.queued[channel];
+  queue.push(source);
+  source.onended = () => queue.splice(queue.indexOf(source), 1);
+}
+
+/** Caller interrupted the assistant: drop its queued speech, like the phone does. */
+function dropQueued(state, channel) {
+  for (const source of state.queued[channel].splice(0)) { try { source.stop(); } catch {} }
+  state.heads[channel] = 0;
+}
+
+function play(state, buffer) {
+  const pcm = new Int16Array(buffer.byteLength % 2 ? buffer.slice(0, -1) : buffer);
+  meter("outMeter", pcm);
+  const samples = new Float32Array(pcm.length);
+  for (let i = 0; i < pcm.length; i++) samples[i] = pcm[i] / 32768;
+  const chunk = state.ctx.createBuffer(1, samples.length, RATE);
+  chunk.copyToChannel(samples, 0);
+  const source = state.ctx.createBufferSource();
+  source.buffer = chunk;
+  source.connect(state.out);
+  const now = state.ctx.currentTime;
+  if (state.playHead < now + 0.02 || state.playHead > now + 0.4) state.playHead = now + 0.08;
+  source.start(state.playHead);
+  state.playHead += chunk.duration;
+}
+
+function stopAudio(text = "Off.") {
+  const state = audio;
+  audio = null;
+  if (state) closeAudio(state);
+  setAudioState(text);
+  $("micToggle").disabled = true;
+  $("micToggle").textContent = "Mute";
+  $("audioToggle").textContent = "Talk from laptop";
+  $("listenToggle").textContent = "Listen in";
+  $("inLabel").textContent = "You";
+  meter("inMeter", null);
+  meter("outMeter", null);
+}
+
+function closeAudio(state) {
+  try { state.ws?.close(); } catch {}
+  state.stream?.getTracks().forEach((t) => t.stop());
+  state.ctx?.close().catch(() => {});
+}
+
+function setAudioState(text, live = false) {
+  $("audioState").textContent = text;
+  $("audioDot").className = `dot ${live ? "live" : ""}`;
+}
+
+function meter(id, pcm) {
+  let level = 0;
+  if (pcm) {
+    let sum = 0;
+    for (let i = 0; i < pcm.length; i++) sum += pcm[i] * pcm[i];
+    level = Math.min(1, Math.sqrt(sum / pcm.length) / 6000);
+  }
+  $(id).style.width = `${Math.round(level * 100)}%`;
+}
+
+// ---- Helpers -------------------------------------------------------------------------------
+
+function formatNumber(n) {
+  const s = String(n || "").trim();
+  if (!s) return "Unknown number";
+  const m = /^(\+91)?(\d{5})(\d{5})$/.exec(s.replace(/[\s-]/g, ""));
+  return m ? `${m[1] ? "+91 " : ""}${m[2]} ${m[3]}` : s;
+}
+
+function timeAgo(iso) {
+  const s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000);
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+function esc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
+boot();
+</script>
+</body>
+</html>

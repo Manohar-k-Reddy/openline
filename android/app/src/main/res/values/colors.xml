@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Same palette as the admin console: greys only; colour is reserved for state. -->
+<resources>
+    <color name="paper">#F4F5F6</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="ink">#1B1D20</color>
+    <color name="on_ink">#FFFFFF</color>
+    <color name="muted">#6A6F75</color>
+    <color name="line">#DCDFE3</color>
+    <color name="soft">#ECEEF0</color>
+    <color name="hint">#8C6A6F75</color>
+    <color name="live">#2F7A4D</color>
+    <color name="ring">#9A6A12</color>
+    <color name="bad">#B3261E</color>
+</resources>

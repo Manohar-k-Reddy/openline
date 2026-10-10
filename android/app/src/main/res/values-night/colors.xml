@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="paper">#141619</color>
+    <color name="surface">#1C1F23</color>
+    <color name="ink">#E7E9EC</color>
+    <color name="on_ink">#141619</color>
+    <color name="muted">#969CA3</color>
+    <color name="line">#2D3136</color>
+    <color name="soft">#24282D</color>
+    <color name="hint">#80969CA3</color>
+    <color name="live">#6CC28F</color>
+    <color name="ring">#D6A54B</color>
+    <color name="bad">#F08A80</color>
+</resources>

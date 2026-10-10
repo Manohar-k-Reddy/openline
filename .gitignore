@@ -1,0 +1,27 @@
+# Node
+node_modules/
+dist/
+coverage/
+*.log
+
+# Android / Gradle
+.gradle/
+**/build/
+local.properties
+*.jks
+*.keystore
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+
+# Server runtime data (paired devices, messages)
+server/data/

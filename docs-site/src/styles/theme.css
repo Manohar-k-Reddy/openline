@@ -1,0 +1,41 @@
+/* Same monochrome palette as the console: greys only, colour reserved for state. */
+@import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+	--sl-font: 'Public Sans', system-ui, sans-serif;
+	--sl-font-mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+}
+
+/* Dark (Starlight default) */
+:root {
+	--sl-color-accent-low: #24282d;
+	--sl-color-accent: #e7e9ec;
+	--sl-color-accent-high: #ffffff;
+	--sl-color-white: #ffffff;
+	--sl-color-gray-1: #e7e9ec;
+	--sl-color-gray-2: #c6cad0;
+	--sl-color-gray-3: #969ca3;
+	--sl-color-gray-4: #6a6f75;
+	--sl-color-gray-5: #2d3136;
+	--sl-color-gray-6: #1c1f23;
+	--sl-color-black: #141619;
+}
+
+/* Light */
+:root[data-theme='light'] {
+	--sl-color-accent-low: #eceef0;
+	--sl-color-accent: #1b1d20;
+	--sl-color-accent-high: #1b1d20;
+	--sl-color-white: #1b1d20;
+	--sl-color-gray-1: #1b1d20;
+	--sl-color-gray-2: #33373c;
+	--sl-color-gray-3: #555a60;
+	--sl-color-gray-4: #6a6f75;
+	--sl-color-gray-5: #dcdfe3;
+	--sl-color-gray-6: #eceef0;
+	--sl-color-gray-7: #f4f5f6;
+	--sl-color-black: #ffffff;
+}
+
+.sl-markdown-content a { text-underline-offset: 3px; }
+.hero h1 { letter-spacing: -0.025em; }

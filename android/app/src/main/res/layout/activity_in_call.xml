@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingStart="24dp"
+    android:paddingTop="40dp"
+    android:paddingEnd="24dp"
+    android:paddingBottom="28dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <View
+            android:id="@+id/stateDot"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:background="@drawable/dot" />
+
+        <TextView
+            android:id="@+id/stateText"
+            style="@style/Gw.Muted"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:textSize="15sp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/numberText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:letterSpacing="-0.02"
+        android:textColor="@color/ink"
+        android:textFontWeight="600"
+        android:textSize="38sp" />
+
+    <TextView
+        android:id="@+id/timerText"
+        style="@style/Gw.Body"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:fontFeatureSettings="tnum"
+        android:textColor="@color/muted"
+        android:textSize="17sp" />
+
+    <TextView
+        android:id="@+id/routedText"
+        style="@style/Gw.Muted"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="Audio goes to the gateway. This phone stays silent."
+        android:textSize="14sp"
+        android:visibility="gone" />
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <GridLayout
+        android:id="@+id/keypad"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="20dp"
+        android:columnCount="3"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/ringingRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/declineButton"
+            style="@style/Gw.Button"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:text="Decline" />
+
+        <Button
+            android:id="@+id/answerButton"
+            style="@style/Gw.Button.Solid"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:text="Answer" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/activeRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/holdButton"
+            style="@style/Gw.Button"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="Hold" />
+
+        <Button
+            android:id="@+id/keypadButton"
+            style="@style/Gw.Button"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:text="Keypad" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/endButton"
+        style="@style/Gw.Button.End"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:text="End call" />
+</LinearLayout>

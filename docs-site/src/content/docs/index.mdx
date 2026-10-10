@@ -1,0 +1,80 @@
+---
+title: 'OpenLine: open-source voice API for AI agents, using your phone''s SIM'
+description: OpenLine is an open-source, self-hosted Twilio Voice alternative. Turn an Android phone's SIM into a programmable phone line; place and answer real calls over REST and stream the audio to AI voice agents like Pipecat.
+template: splash
+head:
+  - tag: script
+    attrs:
+      type: application/ld+json
+    content: |
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "OpenLine",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Android, Windows, macOS, Linux",
+        "description": "Open-source, self-hosted voice API that turns an Android phone's SIM into a programmable phone line for code and AI voice agents.",
+        "url": "https://manohar1404.github.io/openline/",
+        "codeRepository": "https://github.com/manohar1404/openline",
+        "license": "https://opensource.org/licenses/MIT",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+hero:
+  title: OpenLine
+  tagline: Your Android phone's SIM, as a voice API. Place and answer real phone calls over REST, and put AI voice agents on the line through WebSockets. Open source and self-hosted.
+  actions:
+    - text: Quickstart
+      link: start/quickstart/
+      icon: right-arrow
+    - text: Connect an AI agent
+      link: guides/agent-streams/
+      variant: minimal
+    - text: GitHub
+      link: https://github.com/manohar1404/openline
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid>
+	<Card title="REST API for phone calls" icon="phone">
+		`POST /v1/calls` dials. Answer, hang up, hold and press keys with one request each. Every
+		state change arrives as a signed webhook.
+	</Card>
+	<Card title="AI voice agents on real calls" icon="rocket">
+		Give a call a `stream` URL and OpenLine connects it to your agent's WebSocket. Twilio Media
+		Streams format included, so Pipecat-style agents work as they are.
+	</Card>
+	<Card title="Your SIM, your server" icon="laptop">
+		Calls go out on a normal SIM plan, with no per-minute API fees. The server runs on your
+		machine; calls, transcripts and settings stay in one SQLite file.
+	</Card>
+	<Card title="Silent phone" icon="setting">
+		The phone only routes the call. Audio flows between the caller and your server; nothing
+		plays on the handset. No root, no extra hardware.
+	</Card>
+</CardGrid>
+
+## Place a call with an AI agent on it
+
+```bash
+curl -X POST https://your-openline.example/v1/calls \
+  -H "Authorization: Bearer $OPENLINE_KEY" -H "content-type: application/json" \
+  -d '{"deviceId":"phone-7f3a91c2","to":"+919876543210",
+       "stream":{"url":"wss://my-agent.example.com/ws","format":"twilio"}}'
+```
+
+When the call is answered, OpenLine opens your agent's WebSocket and streams the conversation
+both ways. Your agent hangs up by closing the socket.
+
+## Why OpenLine
+
+- **A self-hosted Twilio alternative** for voice: the same building blocks (calls API, status
+  webhooks, media streams), running on hardware you own.
+- **Built for AI agents:** Pipecat, LiveKit workers or your own speech pipeline get raw 16 kHz
+  PCM or Twilio-compatible audio.
+- **Local numbers:** calls come from a real local SIM, so they look like any other call.
+
+Building with an AI coding assistant? Point it at [`llms.txt`](llms.txt) or
+[`llms-full.txt`](llms-full.txt).
