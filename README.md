@@ -10,6 +10,8 @@ AI voice agent controls them over REST and talks through WebSockets.
 [API reference](https://manohar-k-reddy.github.io/openline/api/) ·
 [llms.txt](https://manohar-k-reddy.github.io/openline/llms.txt)
 
+[![OpenLine in 30 seconds (video)](docs-site/public/media/openline-explainer-thumb.jpg)](https://manohar-k-reddy.github.io/openline/media/openline-explainer.mp4)
+
 ```bash
 curl -X POST https://your-openline.example/v1/calls \
   -H "Authorization: Bearer $OPENLINE_KEY" -H "content-type: application/json" \
