@@ -37,6 +37,19 @@ hero:
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
+export const media = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/media`;
+
+<video
+	controls
+	playsinline
+	preload="metadata"
+	poster={`${media}/openline-explainer-poster.jpg`}
+	aria-label="OpenLine in 30 seconds: pair an Android phone, place calls over REST, and stream them to an AI agent"
+	style="width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; border: 1px solid var(--sl-color-gray-5); background: #111315;"
+>
+	<source src={`${media}/openline-explainer.mp4`} type="video/mp4" />
+</video>
+
 <CardGrid>
 	<Card title="REST API for phone calls" icon="phone">
 		`POST /v1/calls` dials. Answer, hang up, hold and press keys with one request each. Every
