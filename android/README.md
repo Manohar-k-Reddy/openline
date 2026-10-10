@@ -31,4 +31,4 @@ silent. No root, Shizuku or PC needed.
 | `config/` | QR pairing and stored credentials |
 | `protocol/` (module) | Wire format shared with the server |
 
-User documentation: https://manohar1404.github.io/openline/guides/phone/
+User documentation: https://manohar-k-reddy.github.io/openline/guides/phone/

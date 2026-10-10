@@ -4,11 +4,11 @@
 to Twilio Voice: an Android phone places and answers real phone calls on its SIM, and your code or
 AI voice agent controls them over REST and talks through WebSockets.
 
-**[Documentation](https://manohar1404.github.io/openline/)** ·
-[Quickstart](https://manohar1404.github.io/openline/start/quickstart/) ·
-[Connect an AI agent](https://manohar1404.github.io/openline/guides/agent-streams/) ·
-[API reference](https://manohar1404.github.io/openline/api/) ·
-[llms.txt](https://manohar1404.github.io/openline/llms.txt)
+**[Documentation](https://manohar-k-reddy.github.io/openline/)** ·
+[Quickstart](https://manohar-k-reddy.github.io/openline/start/quickstart/) ·
+[Connect an AI agent](https://manohar-k-reddy.github.io/openline/guides/agent-streams/) ·
+[API reference](https://manohar-k-reddy.github.io/openline/api/) ·
+[llms.txt](https://manohar-k-reddy.github.io/openline/llms.txt)
 
 ```bash
 curl -X POST https://your-openline.example/v1/calls \
@@ -55,7 +55,7 @@ streams the conversation both ways. Your agent hangs up by closing the socket.
 Needs Node.js 22.13+ and an Android 11+ phone with a SIM.
 
 ```bash
-git clone https://github.com/manohar1404/openline.git
+git clone https://github.com/Manohar-k-Reddy/openline.git
 cd openline/server
 cp .env.example .env          # set HTTP_GATEWAY_API_KEY to a long random string
 npm install && npm run build && npm start
@@ -66,11 +66,11 @@ On Windows, double-click `run-server.bat` instead. Then:
 1. Open `http://localhost:8787/` and create your account.
 2. Give the server a public address: `tailscale funnel --bg 8787` (or a Cloudflare Tunnel), and
    save it in **Settings**.
-3. Install the APK from [Releases](https://github.com/manohar1404/openline/releases) on the
+3. Install the APK from [Releases](https://github.com/Manohar-k-Reddy/openline/releases) on the
    phone, open **Connection** in the console and scan the QR code with the app.
 4. Create an API key in **Settings** and place a call.
 
-The [Quickstart](https://manohar1404.github.io/openline/start/quickstart/) walks through every
+The [Quickstart](https://manohar-k-reddy.github.io/openline/start/quickstart/) walks through every
 step.
 
 ## Repository

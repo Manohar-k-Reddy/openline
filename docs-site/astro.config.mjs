@@ -5,9 +5,9 @@ import starlightOpenAPI, { openAPISidebarGroups } from 'starlight-openapi';
 import starlightLlmsTxt from 'starlight-llms-txt';
 
 // GitHub Pages: the deploy workflow sets SITE (https://<user>.github.io) and BASE (/<repo>).
-const site = process.env.SITE ?? 'https://manohar1404.github.io';
+const site = process.env.SITE ?? 'https://manohar-k-reddy.github.io';
 const base = process.env.BASE ?? '/openline';
-const repo = process.env.REPO_URL ?? 'https://github.com/manohar1404/openline';
+const repo = process.env.REPO_URL ?? 'https://github.com/Manohar-k-Reddy/openline';
 
 export default defineConfig({
 	site,

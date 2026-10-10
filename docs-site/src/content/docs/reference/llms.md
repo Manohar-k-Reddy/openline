@@ -23,6 +23,6 @@ These docs are also published in formats made for language models, following the
 
 A good prompt to start with:
 
-> Read https://manohar1404.github.io/openline/llms-full.txt. Using the OpenLine API, write a
+> Read https://manohar-k-reddy.github.io/openline/llms-full.txt. Using the OpenLine API, write a
 > FastAPI service that places a call with `stream` pointing at a Pipecat bot, and handles the
 > `call.disconnected` webhook.

@@ -23,4 +23,4 @@ Requires Node.js 22.13+ (built-in `node:sqlite`). Data lives in `data/gateway.db
 | `src/auth.ts`, `src/config.ts`, `src/db.ts`, `src/state.ts` | Accounts and API keys, settings, SQLite, calls and phones |
 | `public/console.html` | The web console |
 
-Full documentation: https://manohar1404.github.io/openline/
+Full documentation: https://manohar-k-reddy.github.io/openline/
